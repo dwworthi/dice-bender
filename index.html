@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+  >
+
+  <meta name="theme-color" content="#091523">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Dice Bender">
+
+  <title>Dice Bender</title>
+
+  <!--
+    Development cache-busting:
+    The current time is automatically added whenever the page reloads,
+    encouraging Safari to request the newest CSS file.
+  -->
+  <script>
+    window.diceBenderVersion = Date.now();
+
+    const styleSheet = document.createElement("link");
+    styleSheet.rel = "stylesheet";
+    styleSheet.href = `style.css?v=${window.diceBenderVersion}`;
+    document.head.appendChild(styleSheet);
+  </script>
+</head>
+
+<body>
+
+  <main id="app">
+
+    <!-- START SCREEN -->
+    <section id="startScreen" class="screen active">
+
+      <div class="elementEmblem" aria-hidden="true">
+        <span class="element fire">🔥</span>
+        <span class="element air">💨</span>
+        <span class="element earth">◆</span>
+        <span class="element water">💧</span>
+
+        <div class="emblemDice">
+          <span>⚄</span>
+          <span>⚂</span>
+        </div>
+      </div>
+
+      <div class="titleArea">
+        <p class="eyebrow">Master the four rows</p>
+        <h1>DICE BENDER</h1>
+        <p class="subtitle">
+          Roll with freedom. Cross with strategy.
+        </p>
+      </div>
+
+      <div class="modeButtons">
+
+        <button id="virtualModeButton" class="modeButton primary" type="button">
+          <span class="buttonIcon">⚄</span>
+
+          <span class="buttonText">
+            <strong>Virtual Dice</strong>
+            <small>Roll and play entirely onscreen</small>
+          </span>
+        </button>
+
+        <button id="physicalModeButton" class="modeButton secondary" type="button">
+          <span class="buttonIcon">✦</span>
+
+          <span class="buttonText">
+            <strong>Physical Dice</strong>
+            <small>Use the app as your score sheet</small>
+          </span>
+        </button>
+
+      </div>
+
+      <button id="howToPlayButton" class="textButton" type="button">
+        How to Play
+      </button>
+
+      <p class="versionLabel">First Prototype</p>
+
+    </section>
+
+
+    <!-- GAME SCREEN -->
+    <section id="gameScreen" class="screen">
+
+      <header class="gameHeader">
+
+        <button id="backButton" class="iconButton" type="button" aria-label="Return to menu">
+          ‹
+        </button>
+
+        <div>
+          <p id="modeLabel">Physical Dice</p>
+          <h2>DICE BENDER</h2>
+        </div>
+
+        <button id="menuButton" class="iconButton" type="button" aria-label="Open game menu">
+          ⋯
+        </button>
+
+      </header>
+
+
+      <section class="scoreCard">
+
+        <div class="scoreHeading">
+          <span>Elemental Score Sheet</span>
+          <span>Player 1</span>
+        </div>
+
+
+        <!-- FIRE ROW -->
+        <div class="scoreRow fireRow">
+
+          <div class="rowElement" aria-label="Fire row">
+            <span>🔥</span>
+          </div>
+
+          <div class="numberTrack ascending">
+            <button type="button">2</button>
+            <button type="button">3</button>
+            <button type="button">4</button>
+            <button type="button">5</button>
+            <button type="button">6</button>
+            <button type="button">7</button>
+            <button type="button">8</button>
+            <button type="button">9</button>
+            <button type="button">10</button>
+            <button type="button">11</button>
+            <button type="button">12</button>
+          </div>
+
+          <button class="lockBox" type="button" aria-label="Lock fire row">
+            🔒
+          </button>
+
+        </div>
+
+
+        <!-- AIR ROW -->
+        <div class="scoreRow airRow">
+
+          <div class="rowElement" aria-label="Air row">
+            <span>💨</span>
+          </div>
+
+          <div class="numberTrack ascending">
+            <button type="button">2</button>
+            <button type="button">3</button>
+            <button type="button">4</button>
+            <button type="button">5</button>
+            <button type="button">6</button>
+            <button type="button">7</button>
+            <button type="button">8</button>
+            <button type="button">9</button>
+            <button type="button">10</button>
+            <button type="button">11</button>
+            <button type="button">12</button>
+          </div>
+
+          <button class="lockBox" type="button" aria-label="Lock air row">
+            🔒
+          </button>
+
+        </div>
+
+
+        <!-- EARTH ROW -->
+        <div class="scoreRow earthRow">
+
+          <div class="rowElement" aria-label="Earth row">
+            <span>◆</span>
+          </div>
+
+          <div class="numberTrack descending">
+            <button type="button">12</button>
+            <button type="button">11</button>
+            <button type="button">10</button>
+            <button type="button">9</button>
+            <button type="button">8</button>
+            <button type="button">7</button>
+            <button type="button">6</button>
+            <button type="button">5</button>
+            <button type="button">4</button>
+            <button type="button">3</button>
+            <button type="button">2</button>
+          </div>
+
+          <button class="lockBox" type="button" aria-label="Lock earth row">
+            🔒
+          </button>
+
+        </div>
+
+
+        <!-- WATER ROW -->
+        <div class="scoreRow waterRow">
+
+          <div class="rowElement" aria-label="Water row">
+            <span>💧</span>
+          </div>
+
+          <div class="numberTrack descending">
+            <button type="button">12</button>
+            <button type="button">11</button>
+            <button type="button">10</button>
+            <button type="button">9</button>
+            <button type="button">8</button>
+            <button type="button">7</button>
+            <button type="button">6</button>
+            <button type="button">5</button>
+            <button type="button">4</button>
+            <button type="button">3</button>
+            <button type="button">2</button>
+          </div>
+
+          <button class="lockBox" type="button" aria-label="Lock water row">
+            🔒
+          </button>
+
+        </div>
+
+
+        <div class="penaltyArea">
+
+          <span class="penaltyTitle">Penalties</span>
+
+          <div class="penaltyBoxes">
+            <button type="button" aria-label="Penalty one">×</button>
+            <button type="button" aria-label="Penalty two">×</button>
+            <button type="button" aria-label="Penalty three">×</button>
+            <button type="button" aria-label="Penalty four">×</button>
+          </div>
+
+          <span class="penaltyValue">−5 each</span>
+
+        </div>
+
+      </section>
+
+
+      <section class="gameControls">
+
+        <button id="undoButton" type="button">
+          Undo
+        </button>
+
+        <button id="mainActionButton" type="button">
+          Select a Number
+        </button>
+
+        <button id="newGameButton" type="button">
+          New Game
+        </button>
+
+      </section>
+
+    </section>
+
+  </main>
+
+
+  <!--
+    The JavaScript file receives the same automatic cache-busting value.
+  -->
+  <script>
+    const gameScript = document.createElement("script");
+    gameScript.src = `game.js?v=${window.diceBenderVersion}`;
+    document.body.appendChild(gameScript);
+  </script>
+
+</body>
+</html>
