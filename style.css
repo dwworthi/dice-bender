@@ -1,0 +1,879 @@
+/* =========================================
+   DICE BENDER
+   Phone-first visual foundation
+   ========================================= */
+
+:root {
+  --background-top: #0d2033;
+  --background-bottom: #050b13;
+  --panel: rgba(20, 37, 54, 0.94);
+  --panel-light: rgba(255, 255, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.14);
+
+  --text: #f7fbff;
+  --muted: #9eb0c1;
+  --dark-text: #0b1620;
+
+  --fire: #e94a43;
+  --fire-dark: #a9262b;
+
+  --air: #f4c84b;
+  --air-dark: #b98012;
+
+  --earth: #4eb66b;
+  --earth-dark: #217442;
+
+  --water: #3b9fe8;
+  --water-dark: #1763aa;
+
+  --white-dice: #f5f7fa;
+  --shadow: 0 14px 34px rgba(0, 0, 0, 0.34);
+}
+
+
+/* =========================================
+   RESET AND PAGE
+   ========================================= */
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  width: 100%;
+  height: 100%;
+  background: var(--background-bottom);
+}
+
+body {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  overflow: hidden;
+
+  color: var(--text);
+  background:
+    radial-gradient(
+      circle at 50% 3%,
+      rgba(60, 130, 180, 0.22),
+      transparent 37%
+    ),
+    linear-gradient(
+      180deg,
+      var(--background-top),
+      var(--background-bottom)
+    );
+
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+
+  touch-action: manipulation;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+#app {
+  width: 100%;
+  height: 100dvh;
+  min-height: 100svh;
+  overflow: hidden;
+}
+
+
+/* =========================================
+   SCREEN MANAGEMENT
+   ========================================= */
+
+.screen {
+  display: none;
+  width: 100%;
+  height: 100%;
+}
+
+.screen.active {
+  display: flex;
+}
+
+
+/* =========================================
+   START SCREEN
+   ========================================= */
+
+#startScreen {
+  position: relative;
+  align-items: center;
+  flex-direction: column;
+
+  padding:
+    max(24px, env(safe-area-inset-top))
+    22px
+    max(16px, env(safe-area-inset-bottom));
+
+  overflow: hidden;
+}
+
+#startScreen::before,
+#startScreen::after {
+  position: absolute;
+  z-index: 0;
+
+  width: 210px;
+  height: 210px;
+
+  content: "";
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+}
+
+#startScreen::before {
+  top: -105px;
+  left: -95px;
+}
+
+#startScreen::after {
+  right: -110px;
+  bottom: -100px;
+}
+
+.elementEmblem,
+.titleArea,
+.modeButtons,
+.textButton,
+.versionLabel {
+  position: relative;
+  z-index: 1;
+}
+
+
+/* Element circle */
+
+.elementEmblem {
+  position: relative;
+
+  width: clamp(150px, 42vw, 180px);
+  aspect-ratio: 1;
+
+  margin-top: auto;
+  margin-bottom: 14px;
+
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.10),
+      rgba(255, 255, 255, 0.025) 55%,
+      transparent 57%
+    );
+
+  box-shadow:
+    0 0 40px rgba(48, 147, 218, 0.14),
+    inset 0 0 25px rgba(255, 255, 255, 0.04);
+}
+
+.element {
+  position: absolute;
+
+  display: grid;
+  width: 43px;
+  height: 43px;
+
+  place-items: center;
+
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  border-radius: 50%;
+
+  font-size: 22px;
+  line-height: 1;
+
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.28);
+}
+
+.element.fire {
+  top: -8px;
+  left: calc(50% - 21.5px);
+  background: linear-gradient(145deg, #fa7466, var(--fire-dark));
+}
+
+.element.air {
+  top: calc(50% - 21.5px);
+  right: -8px;
+
+  color: #3b2a00;
+  background: linear-gradient(145deg, #ffe98a, var(--air));
+}
+
+.element.earth {
+  bottom: -8px;
+  left: calc(50% - 21.5px);
+
+  color: #ffffff;
+  background: linear-gradient(145deg, #75d789, var(--earth-dark));
+}
+
+.element.water {
+  top: calc(50% - 21.5px);
+  left: -8px;
+  background: linear-gradient(145deg, #68c9ff, var(--water-dark));
+}
+
+.emblemDice {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+
+  display: flex;
+  gap: 5px;
+
+  transform: translate(-50%, -50%) rotate(-7deg);
+}
+
+.emblemDice span {
+  display: grid;
+  width: 46px;
+  height: 46px;
+
+  place-items: center;
+
+  color: #152536;
+  border: 2px solid #ffffff;
+  border-radius: 11px;
+  background: linear-gradient(145deg, #ffffff, #cbd5df);
+
+  font-size: 38px;
+  line-height: 1;
+
+  box-shadow:
+    0 8px 15px rgba(0, 0, 0, 0.34),
+    inset -3px -3px 5px rgba(42, 62, 79, 0.13);
+}
+
+.emblemDice span:nth-child(2) {
+  transform: translateY(8px) rotate(13deg);
+}
+
+
+/* Start title */
+
+.titleArea {
+  width: 100%;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.eyebrow {
+  margin: 0 0 5px;
+
+  color: #b8c8d7;
+
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2.3px;
+  text-transform: uppercase;
+}
+
+.titleArea h1 {
+  margin: 0;
+
+  color: #ffffff;
+
+  font-size: clamp(35px, 10vw, 46px);
+  font-weight: 950;
+  line-height: 0.98;
+  letter-spacing: -1.5px;
+
+  text-shadow: 0 5px 18px rgba(0, 0, 0, 0.38);
+}
+
+.subtitle {
+  margin: 9px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+
+/* Mode buttons */
+
+.modeButtons {
+  display: grid;
+  width: min(100%, 430px);
+  gap: 11px;
+}
+
+.modeButton {
+  display: flex;
+  min-height: 70px;
+  align-items: center;
+  gap: 14px;
+
+  width: 100%;
+  padding: 10px 16px;
+
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 17px;
+
+  text-align: left;
+
+  box-shadow: var(--shadow);
+
+  transition:
+    transform 100ms ease,
+    filter 100ms ease;
+}
+
+.modeButton.primary {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(43, 132, 194, 0.96),
+      rgba(26, 78, 123, 0.96)
+    );
+}
+
+.modeButton.secondary {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(37, 57, 76, 0.98),
+      rgba(20, 34, 48, 0.98)
+    );
+}
+
+.modeButton:active {
+  filter: brightness(1.12);
+}
+
+.buttonIcon {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+
+  place-items: center;
+
+  color: #182939;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #ffffff, #d7e0e8);
+
+  font-size: 39px;
+  line-height: 1;
+
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.24);
+}
+
+.secondary .buttonIcon {
+  color: #f7d669;
+  background: rgba(255, 255, 255, 0.09);
+  font-size: 27px;
+}
+
+.buttonText {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.buttonText strong {
+  font-size: 17px;
+}
+
+.buttonText small {
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.71);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.textButton {
+  margin-top: 14px;
+  padding: 8px 15px;
+
+  color: #cbd8e3;
+  border: 0;
+  background: transparent;
+
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.versionLabel {
+  margin: auto 0 0;
+  color: rgba(255, 255, 255, 0.34);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+
+/* =========================================
+   GAME SCREEN
+   ========================================= */
+
+#gameScreen {
+  flex-direction: column;
+  gap: 8px;
+
+  padding:
+    max(8px, env(safe-area-inset-top))
+    max(7px, env(safe-area-inset-right))
+    max(8px, env(safe-area-inset-bottom))
+    max(7px, env(safe-area-inset-left));
+}
+
+
+/* Game header */
+
+.gameHeader {
+  display: grid;
+  min-height: 48px;
+  align-items: center;
+  grid-template-columns: 42px 1fr 42px;
+
+  flex: 0 0 auto;
+}
+
+.gameHeader > div {
+  text-align: center;
+}
+
+.gameHeader p {
+  margin: 0 0 1px;
+
+  color: var(--muted);
+
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.gameHeader h2 {
+  margin: 0;
+
+  font-size: 21px;
+  font-weight: 950;
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+.iconButton {
+  display: grid;
+  width: 38px;
+  height: 38px;
+
+  place-items: center;
+
+  color: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.07);
+
+  font-size: 28px;
+  line-height: 1;
+}
+
+
+/* Score sheet card */
+
+.scoreCard {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 6px;
+
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 8px 6px;
+
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background:
+    linear-gradient(
+      155deg,
+      rgba(255, 255, 255, 0.075),
+      rgba(255, 255, 255, 0.025)
+    );
+
+  box-shadow: var(--shadow);
+}
+
+.scoreHeading {
+  display: flex;
+  min-height: 22px;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 6px;
+
+  color: #b9c8d6;
+
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+
+/* Colored scoring rows */
+
+.scoreRow {
+  display: grid;
+  min-height: 48px;
+  flex: 1 1 0;
+  align-items: stretch;
+  grid-template-columns: 29px minmax(0, 1fr) 28px;
+  gap: 3px;
+
+  padding: 4px;
+
+  border: 1px solid rgba(255, 255, 255, 0.21);
+  border-radius: 12px;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 4px 8px rgba(0, 0, 0, 0.16);
+}
+
+.fireRow {
+  background: linear-gradient(135deg, var(--fire), var(--fire-dark));
+}
+
+.airRow {
+  color: #352800;
+  background: linear-gradient(135deg, #ffdd63, var(--air-dark));
+}
+
+.earthRow {
+  background: linear-gradient(135deg, var(--earth), var(--earth-dark));
+}
+
+.waterRow {
+  background: linear-gradient(135deg, var(--water), var(--water-dark));
+}
+
+.rowElement {
+  display: grid;
+  min-width: 0;
+  place-items: center;
+
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.14);
+
+  font-size: 17px;
+  line-height: 1;
+}
+
+.airRow .rowElement {
+  background: rgba(76, 50, 0, 0.13);
+}
+
+.numberTrack {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(11, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.numberTrack button,
+.lockBox {
+  min-width: 0;
+  padding: 0;
+
+  color: var(--dark-text);
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  border-radius: 6px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(229, 235, 240, 0.94)
+    );
+
+  font-size: clamp(10px, 3.15vw, 14px);
+  font-weight: 900;
+  line-height: 1;
+
+  box-shadow:
+    0 2px 3px rgba(0, 0, 0, 0.19),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.numberTrack button:active {
+  background: #ffffff;
+}
+
+.lockBox {
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+}
+
+
+/* Penalties */
+
+.penaltyArea {
+  display: grid;
+  min-height: 43px;
+  align-items: center;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+
+  padding: 5px 8px;
+
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.penaltyTitle {
+  color: #dbe4ec;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.penaltyBoxes {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.penaltyBoxes button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+
+  place-items: center;
+
+  color: #8a9aa8;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+
+  font-size: 18px;
+  font-weight: 850;
+}
+
+.penaltyValue {
+  color: #93a7b8;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+
+/* Bottom controls */
+
+.gameControls {
+  display: grid;
+  width: 100%;
+  max-width: 680px;
+  min-height: 50px;
+  flex: 0 0 50px;
+  grid-template-columns: 0.8fr 1.5fr 0.8fr;
+  gap: 7px;
+
+  margin: 0 auto;
+}
+
+.gameControls button {
+  padding: 4px;
+
+  color: #e6eef5;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+
+  font-size: 11px;
+  font-weight: 850;
+}
+
+#mainActionButton {
+  color: #ffffff;
+  border-color: rgba(94, 185, 249, 0.44);
+  background: linear-gradient(135deg, #369fdf, #1765a4);
+  font-size: 12px;
+}
+
+
+/* =========================================
+   SMALL OR SHORT PHONES
+   ========================================= */
+
+@media (max-height: 700px) {
+  #startScreen {
+    padding-top: max(12px, env(safe-area-inset-top));
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+
+  .elementEmblem {
+    width: 132px;
+    margin-bottom: 9px;
+  }
+
+  .element {
+    width: 37px;
+    height: 37px;
+    font-size: 18px;
+  }
+
+  .element.fire {
+    left: calc(50% - 18.5px);
+  }
+
+  .element.air {
+    top: calc(50% - 18.5px);
+  }
+
+  .element.earth {
+    left: calc(50% - 18.5px);
+  }
+
+  .element.water {
+    top: calc(50% - 18.5px);
+  }
+
+  .emblemDice span {
+    width: 40px;
+    height: 40px;
+    font-size: 33px;
+  }
+
+  .titleArea {
+    margin-bottom: 13px;
+  }
+
+  .titleArea h1 {
+    font-size: 34px;
+  }
+
+  .subtitle {
+    margin-top: 6px;
+    font-size: 12px;
+  }
+
+  .modeButton {
+    min-height: 61px;
+  }
+
+  .textButton {
+    margin-top: 7px;
+  }
+
+  #gameScreen {
+    gap: 5px;
+  }
+
+  .gameHeader {
+    min-height: 42px;
+  }
+
+  .scoreCard {
+    gap: 4px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .scoreRow {
+    min-height: 41px;
+  }
+
+  .penaltyArea {
+    min-height: 37px;
+  }
+
+  .penaltyBoxes button {
+    width: 27px;
+    height: 27px;
+  }
+
+  .gameControls {
+    min-height: 44px;
+    flex-basis: 44px;
+  }
+}
+
+
+/* =========================================
+   VERY NARROW PHONES
+   ========================================= */
+
+@media (max-width: 350px) {
+  #gameScreen {
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .scoreCard {
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .scoreRow {
+    grid-template-columns: 25px minmax(0, 1fr) 25px;
+    gap: 2px;
+    padding: 3px;
+  }
+
+  .numberTrack {
+    gap: 1px;
+  }
+
+  .numberTrack button,
+  .lockBox {
+    border-radius: 4px;
+    font-size: 9px;
+  }
+
+  .penaltyArea {
+    gap: 4px;
+    padding-left: 5px;
+    padding-right: 5px;
+  }
+}
+
+
+/* =========================================
+   DESKTOP SUPPORT
+   Phone layout remains the priority
+   ========================================= */
+
+@media (min-width: 720px) {
+  #startScreen {
+    justify-content: center;
+  }
+
+  .elementEmblem {
+    margin-top: auto;
+  }
+
+  .numberTrack button {
+    font-size: 16px;
+  }
+
+  .gameControls button {
+    font-size: 13px;
+  }
+}
