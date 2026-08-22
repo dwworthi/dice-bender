@@ -692,7 +692,7 @@ button:active {
   max-width: 680px;
   min-height: 50px;
   flex: 0 0 50px;
-  grid-template-columns: 0.8fr 1.5fr 0.8fr;
+  grid-template-columns: 1.7fr 0.9fr;
   gap: 7px;
 
   margin: 0 auto;
@@ -936,4 +936,21 @@ button:active {
     min-height: 61px;
     flex-basis: 61px;
   }
+}
+/* Temporary selections glow until they are locked in */
+
+.numberTrack button.crossed:not(.confirmed) {
+  outline: 3px solid rgba(255, 255, 255, 0.95);
+  outline-offset: -4px;
+
+  filter: brightness(1.16);
+
+  box-shadow:
+    0 0 0 2px rgba(10, 25, 38, 0.34),
+    0 0 13px rgba(255, 255, 255, 0.62);
+}
+
+.numberTrack button.confirmed {
+  cursor: default;
+  filter: brightness(0.88);
 }
