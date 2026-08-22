@@ -2,7 +2,7 @@
 
 /* =========================================
    DICE BENDER
-   Score-sheet selection prototype
+   Temporary and permanent selections
    ========================================= */
 
 
@@ -23,7 +23,6 @@ const howToPlayButton = document.getElementById("howToPlayButton");
 
 const backButton = document.getElementById("backButton");
 const menuButton = document.getElementById("menuButton");
-const undoButton = document.getElementById("undoButton");
 const mainActionButton = document.getElementById("mainActionButton");
 const newGameButton = document.getElementById("newGameButton");
 const modeLabel = document.getElementById("modeLabel");
@@ -38,11 +37,11 @@ const numberButtons = Array.from(
 let currentMode = null;
 
 /*
-  Every selected button is added here in order.
-  Undo removes the most recent selection.
+  These are only the temporary selections for the current turn.
+  Once confirmed, they are removed from this list and become permanent.
 */
 
-let selectionHistory = [];
+let pendingSelections = [];
 
 
 /* =========================================
@@ -60,11 +59,11 @@ function showGameScreen(mode) {
 
   if (mode === "virtual") {
     modeLabel.textContent = "Virtual Dice";
-    mainActionButton.textContent = "Roll Dice";
   } else {
     modeLabel.textContent = "Physical Dice";
-    mainActionButton.textContent = "Select a Number";
   }
+
+  mainActionButton.textContent = "Lock In Selections";
 
   startScreen.classList.remove("active");
   gameScreen.classList.add("active");
@@ -72,46 +71,90 @@ function showGameScreen(mode) {
 
 
 /* =========================================
-   SCORE-SHEET SELECTIONS
+   TEMPORARY SELECTIONS
    ========================================= */
 
 function selectNumber(button) {
   /*
-    A crossed number cannot be selected again.
-    Use Undo if the selection was accidental.
+    A confirmed number is final and cannot be changed.
+  */
+
+  if (button.classList.contains("confirmed")) {
+    return;
+  }
+
+  /*
+    Tapping a temporary selection again removes it.
   */
 
   if (button.classList.contains("crossed")) {
+    button.classList.remove("crossed");
+    button.setAttribute("aria-pressed", "false");
+
+    pendingSelections = pendingSelections.filter(function (selectedButton) {
+      return selectedButton !== button;
+    });
+
+    return;
+  }
+
+  /*
+    A player may make no more than two selections in one turn.
+  */
+
+  if (pendingSelections.length >= 2) {
+    window.alert(
+      "You can select no more than two numbers during one turn."
+    );
+
     return;
   }
 
   button.classList.add("crossed");
   button.setAttribute("aria-pressed", "true");
 
-  selectionHistory.push(button);
+  pendingSelections.push(button);
 }
 
 
-function undoLastSelection() {
-  const mostRecentButton = selectionHistory.pop();
+/* =========================================
+   LOCKING IN A TURN
+   ========================================= */
 
-  if (!mostRecentButton) {
-    window.alert("There are no selections to undo.");
+function lockInSelections() {
+  if (pendingSelections.length === 0) {
+    window.alert("Select at least one number first.");
     return;
   }
 
-  mostRecentButton.classList.remove("crossed");
-  mostRecentButton.setAttribute("aria-pressed", "false");
+  const shouldLockSelections = window.confirm(
+    "Are you sure? This cannot be undone."
+  );
+
+  if (!shouldLockSelections) {
+    return;
+  }
+
+  pendingSelections.forEach(function (button) {
+    button.classList.add("confirmed");
+  });
+
+  pendingSelections = [];
 }
 
 
-function clearScoreSheet() {
+/* =========================================
+   NEW GAME
+   ========================================= */
+
+function clearEntireScoreSheet() {
   numberButtons.forEach(function (button) {
     button.classList.remove("crossed");
+    button.classList.remove("confirmed");
     button.setAttribute("aria-pressed", "false");
   });
 
-  selectionHistory = [];
+  pendingSelections = [];
 }
 
 
@@ -163,30 +206,17 @@ menuButton.addEventListener("click", function () {
 });
 
 
-undoButton.addEventListener("click", function () {
-  undoLastSelection();
-});
-
-
 mainActionButton.addEventListener("click", function () {
-  if (currentMode === "virtual") {
-    window.alert(
-      "Virtual dice rolling will be added after the score sheet rules are working."
-    );
-  } else {
-    window.alert(
-      "Tap any number on the score sheet to cross it out."
-    );
-  }
+  lockInSelections();
 });
 
 
 newGameButton.addEventListener("click", function () {
   const shouldStartNewGame = window.confirm(
-    "Start a new game? All crossed numbers will be cleared."
+    "Start a new game? The entire score sheet will be cleared."
   );
 
   if (shouldStartNewGame) {
-    clearScoreSheet();
+    clearEntireScoreSheet();
   }
 });
