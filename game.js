@@ -2,7 +2,7 @@
 
 /* =========================================
    DICE BENDER
-   First prototype navigation
+   Score-sheet selection prototype
    ========================================= */
 
 
@@ -19,20 +19,30 @@ const physicalModeButton = document.getElementById("physicalModeButton");
 const howToPlayButton = document.getElementById("howToPlayButton");
 
 
-/* GAME SCREEN BUTTONS */
+/* GAME SCREEN ELEMENTS */
 
 const backButton = document.getElementById("backButton");
 const menuButton = document.getElementById("menuButton");
 const undoButton = document.getElementById("undoButton");
 const mainActionButton = document.getElementById("mainActionButton");
 const newGameButton = document.getElementById("newGameButton");
-
 const modeLabel = document.getElementById("modeLabel");
+
+const numberButtons = Array.from(
+  document.querySelectorAll(".numberTrack button")
+);
 
 
 /* CURRENT GAME INFORMATION */
 
 let currentMode = null;
+
+/*
+  Every selected button is added here in order.
+  Undo removes the most recent selection.
+*/
+
+let selectionHistory = [];
 
 
 /* =========================================
@@ -59,6 +69,61 @@ function showGameScreen(mode) {
   startScreen.classList.remove("active");
   gameScreen.classList.add("active");
 }
+
+
+/* =========================================
+   SCORE-SHEET SELECTIONS
+   ========================================= */
+
+function selectNumber(button) {
+  /*
+    A crossed number cannot be selected again.
+    Use Undo if the selection was accidental.
+  */
+
+  if (button.classList.contains("crossed")) {
+    return;
+  }
+
+  button.classList.add("crossed");
+  button.setAttribute("aria-pressed", "true");
+
+  selectionHistory.push(button);
+}
+
+
+function undoLastSelection() {
+  const mostRecentButton = selectionHistory.pop();
+
+  if (!mostRecentButton) {
+    window.alert("There are no selections to undo.");
+    return;
+  }
+
+  mostRecentButton.classList.remove("crossed");
+  mostRecentButton.setAttribute("aria-pressed", "false");
+}
+
+
+function clearScoreSheet() {
+  numberButtons.forEach(function (button) {
+    button.classList.remove("crossed");
+    button.setAttribute("aria-pressed", "false");
+  });
+
+  selectionHistory = [];
+}
+
+
+/* Add a tap action to every number box */
+
+numberButtons.forEach(function (button) {
+  button.setAttribute("aria-pressed", "false");
+
+  button.addEventListener("click", function () {
+    selectNumber(button);
+  });
+});
 
 
 /* =========================================
@@ -99,20 +164,18 @@ menuButton.addEventListener("click", function () {
 
 
 undoButton.addEventListener("click", function () {
-  window.alert(
-    "Undo will become active when score-sheet selections are added."
-  );
+  undoLastSelection();
 });
 
 
 mainActionButton.addEventListener("click", function () {
   if (currentMode === "virtual") {
     window.alert(
-      "Virtual dice rolling will be added after the score sheet is working."
+      "Virtual dice rolling will be added after the score sheet rules are working."
     );
   } else {
     window.alert(
-      "Number selection will be added in the next development stage."
+      "Tap any number on the score sheet to cross it out."
     );
   }
 });
@@ -120,11 +183,10 @@ mainActionButton.addEventListener("click", function () {
 
 newGameButton.addEventListener("click", function () {
   const shouldStartNewGame = window.confirm(
-    "Return to the Dice Bender start screen?"
+    "Start a new game? All crossed numbers will be cleared."
   );
 
   if (shouldStartNewGame) {
-    currentMode = null;
-    showStartScreen();
+    clearScoreSheet();
   }
 });
