@@ -2,7 +2,7 @@
 
 /* =========================================
    DICE BENDER
-   Legal row progression
+   Legal rows and penalties
    ========================================= */
 
 
@@ -35,17 +35,16 @@ const numberButtons = Array.from(
   document.querySelectorAll(".numberTrack button")
 );
 
+const penaltyButtons = Array.from(
+  document.querySelectorAll(".penaltyBoxes button")
+);
+
 
 /* CURRENT GAME INFORMATION */
 
 let currentMode = null;
-
-/*
-  These are only the temporary selections for the current turn.
-  Once confirmed, they become permanent.
-*/
-
 let pendingSelections = [];
+let pendingPenalty = null;
 
 
 /* =========================================
@@ -72,7 +71,7 @@ function showGameScreen(mode) {
   startScreen.classList.remove("active");
   gameScreen.classList.add("active");
 
-  updateScoreSheetState();
+  updateGameState();
 }
 
 
@@ -87,27 +86,8 @@ function getRowButtons(row) {
 }
 
 
-function getButtonPosition(button) {
-  const row = button.closest(".scoreRow");
-  const rowButtons = getRowButtons(row);
-
-  return rowButtons.indexOf(button);
-}
-
-
-/*
-  All four rows progress visually from left to right.
-
-  Fire and air increase from 2 to 12.
-  Earth and water decrease from 12 to 2.
-
-  Because the HTML already places every row in its proper progression
-  order, we can use each button's left-to-right position.
-*/
-
 function getFurthestSelectedPosition(row) {
   const rowButtons = getRowButtons(row);
-
   let furthestPosition = -1;
 
   rowButtons.forEach(function (button, position) {
@@ -124,10 +104,10 @@ function getFurthestSelectedPosition(row) {
 
 
 /* =========================================
-   AVAILABILITY
+   NUMBER AVAILABILITY
    ========================================= */
 
-function updateScoreSheetState() {
+function updateNumberState() {
   scoreRows.forEach(function (row) {
     const rowButtons = getRowButtons(row);
     const furthestPosition = getFurthestSelectedPosition(row);
@@ -135,13 +115,6 @@ function updateScoreSheetState() {
     rowButtons.forEach(function (button, position) {
       const isCrossed = button.classList.contains("crossed");
       const isConfirmed = button.classList.contains("confirmed");
-
-      /*
-        Crossed numbers remain visible.
-
-        Any unselected number at or before the furthest selected
-        position is no longer available.
-      */
 
       if (isCrossed) {
         button.classList.remove("unavailable");
@@ -158,31 +131,75 @@ function updateScoreSheetState() {
       }
     });
   });
-
-  /*
-    Lock In is only active when at least one temporary
-    selection exists.
-  */
-
-  mainActionButton.disabled = pendingSelections.length === 0;
 }
 
 
 /* =========================================
-   TEMPORARY SELECTIONS
+   PENALTY AVAILABILITY
+   ========================================= */
+
+function getNextPenaltyButton() {
+  return penaltyButtons.find(function (button) {
+    return !button.classList.contains("confirmed-penalty");
+  });
+}
+
+
+function updatePenaltyState() {
+  const nextPenaltyButton = getNextPenaltyButton();
+
+  penaltyButtons.forEach(function (button) {
+    const isConfirmed = button.classList.contains(
+      "confirmed-penalty"
+    );
+
+    const isPending = button === pendingPenalty;
+
+    if (isConfirmed) {
+      button.disabled = true;
+      return;
+    }
+
+    /*
+      Only the next empty penalty box can be selected.
+      Future penalty boxes silently ignore taps.
+    */
+
+    button.disabled = (
+      button !== nextPenaltyButton &&
+      !isPending
+    );
+  });
+}
+
+
+/* =========================================
+   COMPLETE INTERFACE UPDATE
+   ========================================= */
+
+function updateGameState() {
+  updateNumberState();
+  updatePenaltyState();
+
+  const hasPendingChoice =
+    pendingSelections.length > 0 ||
+    pendingPenalty !== null;
+
+  mainActionButton.disabled = !hasPendingChoice;
+}
+
+
+/* =========================================
+   TEMPORARY NUMBER SELECTIONS
    ========================================= */
 
 function selectNumber(button) {
-  /*
-    Permanent selections cannot be changed.
-  */
-
   if (button.classList.contains("confirmed")) {
     return;
   }
 
   /*
-    A temporary selection can always be removed by tapping it again.
+    Tap an existing temporary number to remove it.
   */
 
   if (pendingSelections.includes(button)) {
@@ -195,22 +212,21 @@ function selectNumber(button) {
       }
     );
 
-    updateScoreSheetState();
+    updateGameState();
     return;
   }
 
   /*
-    Unavailable numbers silently ignore taps.
+    A penalty cannot be combined with number selections.
   */
+
+  if (pendingPenalty !== null) {
+    return;
+  }
 
   if (button.classList.contains("unavailable")) {
     return;
   }
-
-  /*
-    No more than two numbers may be selected during one turn.
-    A third attempted selection silently does nothing.
-  */
 
   if (pendingSelections.length >= 2) {
     return;
@@ -221,7 +237,51 @@ function selectNumber(button) {
 
   pendingSelections.push(button);
 
-  updateScoreSheetState();
+  updateGameState();
+}
+
+
+/* =========================================
+   TEMPORARY PENALTY SELECTION
+   ========================================= */
+
+function selectPenalty(button) {
+  /*
+    Tap the temporary penalty again to remove it.
+  */
+
+  if (button === pendingPenalty) {
+    button.classList.remove("pending-penalty");
+    button.setAttribute("aria-pressed", "false");
+
+    pendingPenalty = null;
+
+    updateGameState();
+    return;
+  }
+
+  /*
+    A penalty cannot be combined with number selections.
+  */
+
+  if (pendingSelections.length > 0) {
+    return;
+  }
+
+  if (button.classList.contains("confirmed-penalty")) {
+    return;
+  }
+
+  if (button !== getNextPenaltyButton()) {
+    return;
+  }
+
+  pendingPenalty = button;
+
+  button.classList.add("pending-penalty");
+  button.setAttribute("aria-pressed", "true");
+
+  updateGameState();
 }
 
 
@@ -230,7 +290,11 @@ function selectNumber(button) {
    ========================================= */
 
 function lockInSelections() {
-  if (pendingSelections.length === 0) {
+  const hasPendingChoice =
+    pendingSelections.length > 0 ||
+    pendingPenalty !== null;
+
+  if (!hasPendingChoice) {
     return;
   }
 
@@ -248,7 +312,15 @@ function lockInSelections() {
 
   pendingSelections = [];
 
-  updateScoreSheetState();
+  if (pendingPenalty !== null) {
+    pendingPenalty.classList.remove("pending-penalty");
+    pendingPenalty.classList.add("confirmed-penalty");
+    pendingPenalty.disabled = true;
+
+    pendingPenalty = null;
+  }
+
+  updateGameState();
 }
 
 
@@ -266,9 +338,18 @@ function clearEntireScoreSheet() {
     button.disabled = false;
   });
 
-  pendingSelections = [];
+  penaltyButtons.forEach(function (button) {
+    button.classList.remove("pending-penalty");
+    button.classList.remove("confirmed-penalty");
 
-  updateScoreSheetState();
+    button.setAttribute("aria-pressed", "false");
+    button.disabled = false;
+  });
+
+  pendingSelections = [];
+  pendingPenalty = null;
+
+  updateGameState();
 }
 
 
@@ -281,6 +362,19 @@ numberButtons.forEach(function (button) {
 
   button.addEventListener("click", function () {
     selectNumber(button);
+  });
+});
+
+
+/* =========================================
+   PENALTY-BUTTON ACTIONS
+   ========================================= */
+
+penaltyButtons.forEach(function (button) {
+  button.setAttribute("aria-pressed", "false");
+
+  button.addEventListener("click", function () {
+    selectPenalty(button);
   });
 });
 
@@ -338,6 +432,6 @@ newGameButton.addEventListener("click", function () {
 });
 
 
-/* Establish the initial score-sheet appearance */
+/* Establish the initial interface state */
 
-updateScoreSheetState();
+updateGameState();
