@@ -2,7 +2,7 @@
 
 /* =========================================
    DICE BENDER
-   Temporary and permanent selections
+   Legal row progression
    ========================================= */
 
 
@@ -27,6 +27,10 @@ const mainActionButton = document.getElementById("mainActionButton");
 const newGameButton = document.getElementById("newGameButton");
 const modeLabel = document.getElementById("modeLabel");
 
+const scoreRows = Array.from(
+  document.querySelectorAll(".scoreRow")
+);
+
 const numberButtons = Array.from(
   document.querySelectorAll(".numberTrack button")
 );
@@ -38,7 +42,7 @@ let currentMode = null;
 
 /*
   These are only the temporary selections for the current turn.
-  Once confirmed, they are removed from this list and become permanent.
+  Once confirmed, they become permanent.
 */
 
 let pendingSelections = [];
@@ -67,6 +71,100 @@ function showGameScreen(mode) {
 
   startScreen.classList.remove("active");
   gameScreen.classList.add("active");
+
+  updateScoreSheetState();
+}
+
+
+/* =========================================
+   ROW HELPERS
+   ========================================= */
+
+function getRowButtons(row) {
+  return Array.from(
+    row.querySelectorAll(".numberTrack button")
+  );
+}
+
+
+function getButtonPosition(button) {
+  const row = button.closest(".scoreRow");
+  const rowButtons = getRowButtons(row);
+
+  return rowButtons.indexOf(button);
+}
+
+
+/*
+  All four rows progress visually from left to right.
+
+  Fire and air increase from 2 to 12.
+  Earth and water decrease from 12 to 2.
+
+  Because the HTML already places every row in its proper progression
+  order, we can use each button's left-to-right position.
+*/
+
+function getFurthestSelectedPosition(row) {
+  const rowButtons = getRowButtons(row);
+
+  let furthestPosition = -1;
+
+  rowButtons.forEach(function (button, position) {
+    if (
+      button.classList.contains("crossed") &&
+      position > furthestPosition
+    ) {
+      furthestPosition = position;
+    }
+  });
+
+  return furthestPosition;
+}
+
+
+/* =========================================
+   AVAILABILITY
+   ========================================= */
+
+function updateScoreSheetState() {
+  scoreRows.forEach(function (row) {
+    const rowButtons = getRowButtons(row);
+    const furthestPosition = getFurthestSelectedPosition(row);
+
+    rowButtons.forEach(function (button, position) {
+      const isCrossed = button.classList.contains("crossed");
+      const isConfirmed = button.classList.contains("confirmed");
+
+      /*
+        Crossed numbers remain visible.
+
+        Any unselected number at or before the furthest selected
+        position is no longer available.
+      */
+
+      if (isCrossed) {
+        button.classList.remove("unavailable");
+        button.disabled = isConfirmed;
+        return;
+      }
+
+      if (position <= furthestPosition) {
+        button.classList.add("unavailable");
+        button.disabled = true;
+      } else {
+        button.classList.remove("unavailable");
+        button.disabled = false;
+      }
+    });
+  });
+
+  /*
+    Lock In is only active when at least one temporary
+    selection exists.
+  */
+
+  mainActionButton.disabled = pendingSelections.length === 0;
 }
 
 
@@ -76,7 +174,7 @@ function showGameScreen(mode) {
 
 function selectNumber(button) {
   /*
-    A confirmed number is final and cannot be changed.
+    Permanent selections cannot be changed.
   */
 
   if (button.classList.contains("confirmed")) {
@@ -84,29 +182,37 @@ function selectNumber(button) {
   }
 
   /*
-    Tapping a temporary selection again removes it.
+    A temporary selection can always be removed by tapping it again.
   */
 
-  if (button.classList.contains("crossed")) {
+  if (pendingSelections.includes(button)) {
     button.classList.remove("crossed");
     button.setAttribute("aria-pressed", "false");
 
-    pendingSelections = pendingSelections.filter(function (selectedButton) {
-      return selectedButton !== button;
-    });
+    pendingSelections = pendingSelections.filter(
+      function (selectedButton) {
+        return selectedButton !== button;
+      }
+    );
 
+    updateScoreSheetState();
     return;
   }
 
   /*
-    A player may make no more than two selections in one turn.
+    Unavailable numbers silently ignore taps.
+  */
+
+  if (button.classList.contains("unavailable")) {
+    return;
+  }
+
+  /*
+    No more than two numbers may be selected during one turn.
+    A third attempted selection silently does nothing.
   */
 
   if (pendingSelections.length >= 2) {
-    window.alert(
-      "You can select no more than two numbers during one turn."
-    );
-
     return;
   }
 
@@ -114,6 +220,8 @@ function selectNumber(button) {
   button.setAttribute("aria-pressed", "true");
 
   pendingSelections.push(button);
+
+  updateScoreSheetState();
 }
 
 
@@ -123,7 +231,6 @@ function selectNumber(button) {
 
 function lockInSelections() {
   if (pendingSelections.length === 0) {
-    window.alert("Select at least one number first.");
     return;
   }
 
@@ -140,6 +247,8 @@ function lockInSelections() {
   });
 
   pendingSelections = [];
+
+  updateScoreSheetState();
 }
 
 
@@ -151,14 +260,21 @@ function clearEntireScoreSheet() {
   numberButtons.forEach(function (button) {
     button.classList.remove("crossed");
     button.classList.remove("confirmed");
+    button.classList.remove("unavailable");
+
     button.setAttribute("aria-pressed", "false");
+    button.disabled = false;
   });
 
   pendingSelections = [];
+
+  updateScoreSheetState();
 }
 
 
-/* Add a tap action to every number box */
+/* =========================================
+   NUMBER-BUTTON ACTIONS
+   ========================================= */
 
 numberButtons.forEach(function (button) {
   button.setAttribute("aria-pressed", "false");
@@ -220,3 +336,8 @@ newGameButton.addEventListener("click", function () {
     clearEntireScoreSheet();
   }
 });
+
+
+/* Establish the initial score-sheet appearance */
+
+updateScoreSheetState();
