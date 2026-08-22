@@ -971,3 +971,28 @@ button:active {
   filter: grayscale(0.45);
   cursor: default;
 }
+/* =========================================
+   PENALTY SELECTION STATES
+   ========================================= */
+
+.penaltyBoxes button.pending-penalty {
+  color: #ffffff;
+  border-color: #ffffff;
+  background: #d76148;
+
+  outline: 2px solid rgba(255, 255, 255, 0.95);
+  outline-offset: 2px;
+
+  box-shadow: 0 0 12px rgba(255, 113, 81, 0.75);
+}
+
+.penaltyBoxes button.confirmed-penalty {
+  color: #ffffff;
+  border-color: #a82e26;
+  background: #b63830;
+
+  opacity: 1;
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.28),
+    0 2px 4px rgba(0, 0, 0, 0.22);
+}
