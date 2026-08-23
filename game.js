@@ -319,8 +319,59 @@ function showDieValue(die, value) {
 }
 
 
+function updateDiceAvailability() {
+  trayDice.forEach(function (die, index) {
+    /*
+      The first two dice are always the white dice.
+    */
+
+    if (index < 2) {
+      die.classList.remove("removed-die");
+      die.setAttribute("aria-disabled", "false");
+      return;
+    }
+
+
+    /*
+      The remaining dice match the score rows in order:
+      fire, air, earth, and water.
+    */
+
+    const matchingRow =
+      scoreRows[index - 2];
+
+    const finalNumber =
+      getFinalNumberButton(matchingRow);
+
+    const rowIsLocked =
+      finalNumber.classList.contains("confirmed");
+
+
+    die.classList.toggle(
+      "removed-die",
+      rowIsLocked
+    );
+
+    die.setAttribute(
+      "aria-disabled",
+      rowIsLocked ? "true" : "false"
+    );
+  });
+}
+
+
 function rollVirtualDice() {
   trayDice.forEach(function (die) {
+    /*
+      Removed colored dice keep their previous value
+      and do not participate in future rolls.
+    */
+
+    if (die.classList.contains("removed-die")) {
+      return;
+    }
+
+
     const newValue =
       getRandomDieValue();
 
@@ -710,6 +761,7 @@ function updateGameState() {
   updateNumberAndLockState();
   updatePenaltyState();
   updateScores();
+  updateDiceAvailability();
 
   const hasPendingChoice =
     pendingSelections.length > 0 ||
