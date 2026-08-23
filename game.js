@@ -45,7 +45,7 @@ const penaltyButtons = Array.from(
 const lockOverlay = document.getElementById("lockOverlay");
 const cancelLockButton = document.getElementById("cancelLockButton");
 const confirmLockButton = document.getElementById("confirmLockButton");
-
+const lockCard = document.querySelector(".lockCard");
 
 /* CURRENT GAME INFORMATION */
 
@@ -309,6 +309,42 @@ function selectPenalty(button) {
    CUSTOM LOCK-IN PANEL
    ========================================= */
 
+function positionLockPanel() {
+  const buttonPosition =
+    mainActionButton.getBoundingClientRect();
+
+  const panelGap = 5;
+  const expectedPanelHeight = 53;
+
+  let panelTop =
+    buttonPosition.bottom + panelGap;
+
+  /*
+    If a very short screen does not have enough room below,
+    place the confirmation directly above the button instead.
+  */
+
+  if (
+    panelTop + expectedPanelHeight >
+    window.innerHeight - 6
+  ) {
+    panelTop =
+      buttonPosition.top -
+      expectedPanelHeight -
+      panelGap;
+  }
+
+  lockCard.style.left =
+    `${buttonPosition.left}px`;
+
+  lockCard.style.top =
+    `${panelTop}px`;
+
+  lockCard.style.width =
+    `${buttonPosition.width}px`;
+}
+
+
 function openLockPanel() {
   const hasPendingChoice =
     pendingSelections.length > 0 ||
@@ -321,13 +357,8 @@ function openLockPanel() {
   lockOverlay.classList.add("open");
   lockOverlay.setAttribute("aria-hidden", "false");
 
+  positionLockPanel();
   confirmLockButton.focus();
-}
-
-
-function closeLockPanel() {
-  lockOverlay.classList.remove("open");
-  lockOverlay.setAttribute("aria-hidden", "true");
 }
 
 
@@ -483,3 +514,8 @@ newGameButton.addEventListener("click", function () {
 /* Establish the initial interface state */
 
 updateGameState();
+window.addEventListener("resize", function () {
+  if (lockOverlay.classList.contains("open")) {
+    positionLockPanel();
+  }
+});
