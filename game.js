@@ -82,6 +82,7 @@ let pendingSelections = [];
 let pendingPenalty = null;
 let gameIsOver = false;
 let diceHaveBeenRolled = false;
+let diceAreRolling = false;
 
 /* SCORE DISPLAY STATE */
 
@@ -128,7 +129,7 @@ function createScoreDisplays() {
     );
 
   scoreHeadingRight.innerHTML =
-    `Player 1 · <strong id="totalScore">0</strong> pts`;
+    `Player 1 Â· <strong id="totalScore">0</strong> pts`;
 
   totalScoreElement =
     document.getElementById("totalScore");
@@ -360,23 +361,310 @@ function updateDiceAvailability() {
 }
 
 
-function rollVirtualDice() {
-  trayDice.forEach(function (die) {
-    /*
-      Removed colored dice keep their previous value
-      and do not participate in future rolls.
-    */
-
-    if (die.classList.contains("removed-die")) {
-      return;
-    }
-
-
-    const newValue =
-      getRandomDieValue();
-
-    showDieValue(die, newValue);
+function wait(milliseconds) {
+  return new Promise(function (resolve) {
+    window.setTimeout(resolve, milliseconds);
   });
+}
+
+
+function getDiceRollLayer() {
+  let rollLayer =
+    document.getElementById("diceRollLayer");
+
+  if (!rollLayer) {
+    rollLayer = document.createElement("div");
+    rollLayer.id = "diceRollLayer";
+    rollLayer.className = "diceRollLayer";
+
+    gameScreen.appendChild(rollLayer);
+  }
+
+  return rollLayer;
+}
+
+
+function getRandomNumberBetween(minimum, maximum) {
+  return (
+    Math.random() * (maximum - minimum) +
+    minimum
+  );
+}
+
+
+function createRandomRollPath(
+  screenWidth,
+  screenHeight,
+  dieSize
+) {
+  const edge =
+    Math.floor(Math.random() * 4);
+
+  let startX;
+  let startY;
+
+
+  if (edge === 0) {
+    startX = -dieSize;
+    startY = getRandomNumberBetween(
+      0,
+      screenHeight * 0.75
+    );
+  } else if (edge === 1) {
+    startX = screenWidth + dieSize;
+    startY = getRandomNumberBetween(
+      0,
+      screenHeight * 0.75
+    );
+  } else if (edge === 2) {
+    startX = getRandomNumberBetween(
+      0,
+      screenWidth - dieSize
+    );
+
+    startY = -dieSize;
+  } else {
+    startX = getRandomNumberBetween(
+      0,
+      screenWidth - dieSize
+    );
+
+    startY = screenHeight + dieSize;
+  }
+
+
+  const finalX =
+    getRandomNumberBetween(
+      8,
+      Math.max(9, screenWidth - dieSize - 8)
+    );
+
+  const finalY =
+    getRandomNumberBetween(
+      55,
+      Math.max(56, screenHeight - dieSize - 135)
+    );
+
+
+  const middleX =
+    getRandomNumberBetween(
+      8,
+      Math.max(9, screenWidth - dieSize - 8)
+    );
+
+  const middleY =
+    getRandomNumberBetween(
+      45,
+      Math.max(46, screenHeight - dieSize - 125)
+    );
+
+
+  return {
+    startX: startX,
+    startY: startY,
+    middleX: middleX,
+    middleY: middleY,
+    finalX: finalX,
+    finalY: finalY
+  };
+}
+
+
+function animateOneDie(
+  sourceDie,
+  rollLayer,
+  delay
+) {
+  const rollingDie =
+    sourceDie.cloneNode(true);
+
+  rollingDie.classList.remove("removed-die");
+  rollingDie.classList.add("rollingDie");
+
+  rollingDie.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+
+  rollLayer.appendChild(rollingDie);
+
+
+  const layerPosition =
+    rollLayer.getBoundingClientRect();
+
+  const dieSize = 58;
+
+  const path =
+    createRandomRollPath(
+      layerPosition.width,
+      layerPosition.height,
+      dieSize
+    );
+
+
+  const direction =
+    Math.random() > 0.5 ? 1 : -1;
+
+  const rotation =
+    getRandomNumberBetween(620, 980) *
+    direction;
+
+  const duration =
+    getRandomNumberBetween(1250, 1650);
+
+
+  const animation =
+    rollingDie.animate(
+      [
+        {
+          opacity: 0,
+          transform:
+            `translate(${path.startX}px, ${path.startY}px)
+             rotate(0deg)
+             scale(0.76)`,
+          offset: 0
+        },
+
+        {
+          opacity: 1,
+          transform:
+            `translate(${path.startX}px, ${path.startY}px)
+             rotate(70deg)
+             scale(0.92)`,
+          offset: 0.08
+        },
+
+        {
+          opacity: 1,
+          transform:
+            `translate(${path.middleX}px, ${path.middleY}px)
+             rotate(${rotation * 0.58}deg)
+             scale(1.07)`,
+          offset: 0.55
+        },
+
+        {
+          opacity: 1,
+          transform:
+            `translate(${path.finalX}px, ${path.finalY}px)
+             rotate(${rotation * 0.82}deg)
+             scale(0.97)`,
+          offset: 0.76
+        },
+
+        {
+          opacity: 1,
+          transform:
+            `translate(${path.finalX}px, ${path.finalY - 16}px)
+             rotate(${rotation * 0.92}deg)
+             scale(1.03)`,
+          offset: 0.87
+        },
+
+        {
+          opacity: 1,
+          transform:
+            `translate(${path.finalX}px, ${path.finalY}px)
+             rotate(${rotation}deg)
+             scale(1)`,
+          offset: 1
+        }
+      ],
+
+      {
+        duration: duration,
+        delay: delay,
+        easing: "cubic-bezier(0.18, 0.72, 0.24, 1)",
+        fill: "forwards"
+      }
+    );
+
+
+  return animation.finished.catch(function () {
+    return undefined;
+  });
+}
+
+
+async function rollVirtualDice() {
+  if (diceAreRolling) {
+    return;
+  }
+
+
+  diceAreRolling = true;
+  diceHaveBeenRolled = false;
+
+  updateGameState();
+
+
+  const diceTray =
+    document.getElementById("diceTray");
+
+  const rollLayer =
+    getDiceRollLayer();
+
+  rollLayer.innerHTML = "";
+  rollLayer.classList.remove("diceFinished");
+
+  updateDiceAvailability();
+
+
+  const activeDice =
+    trayDice.filter(function (die) {
+      return !die.classList.contains("removed-die");
+    });
+
+
+  activeDice.forEach(function (die) {
+    showDieValue(
+      die,
+      getRandomDieValue()
+    );
+  });
+
+
+  const reducedMotion =
+    window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
+
+  if (!reducedMotion) {
+    diceTray.classList.add("dice-rolling");
+    rollLayer.classList.add("active");
+
+
+    const animations =
+      activeDice.map(function (die, index) {
+        return animateOneDie(
+          die,
+          rollLayer,
+          index * 65
+        );
+      });
+
+
+    await Promise.all(animations);
+    await wait(650);
+
+
+    rollLayer.classList.add("diceFinished");
+    diceTray.classList.remove("dice-rolling");
+
+    await wait(280);
+
+
+    rollLayer.classList.remove("active");
+    rollLayer.classList.remove("diceFinished");
+    rollLayer.innerHTML = "";
+  }
+
+
+  diceAreRolling = false;
+  diceHaveBeenRolled = true;
+
+  updateGameState();
 }
 /* =========================================
    SCREEN CHANGING
@@ -766,6 +1054,20 @@ function updateGameState() {
   const hasPendingChoice =
     pendingSelections.length > 0 ||
     pendingPenalty !== null;
+
+
+  if (
+    currentMode === "virtual" &&
+    diceAreRolling
+  ) {
+    mainActionButton.textContent = "Rolling...";
+    mainActionButton.disabled = true;
+    newGameButton.disabled = true;
+    return;
+  }
+
+
+  newGameButton.disabled = false;
 
 
   /*
@@ -1368,6 +1670,7 @@ function clearPendingChoices() {
 function clearEntireScoreSheet() {
   gameIsOver = false;
   diceHaveBeenRolled = false;
+  diceAreRolling = false;
   numberButtons.forEach(function (button) {
     button.classList.remove(
       "crossed",
@@ -1489,30 +1792,21 @@ menuButton.addEventListener("click", function () {
 });
 
 
-mainActionButton.addEventListener("click", function () {
-  /*
-    In Virtual Dice mode, the button begins each
-    turn by rolling all available dice.
-  */
+mainActionButton.addEventListener(
+  "click",
+  async function () {
+    if (
+      currentMode === "virtual" &&
+      !diceHaveBeenRolled
+    ) {
+      await rollVirtualDice();
+      return;
+    }
 
-  if (
-    currentMode === "virtual" &&
-    !diceHaveBeenRolled
-  ) {
-    rollVirtualDice();
-    diceHaveBeenRolled = true;
 
-    updateGameState();
-    return;
+    openLockPanel();
   }
-
-
-  /*
-    After rolling, the same button locks in the turn.
-  */
-
-  openLockPanel();
-});
+);
 
 cancelLockButton.addEventListener("click", function () {
   clearPendingChoices();
