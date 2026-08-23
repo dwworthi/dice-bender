@@ -2024,3 +2024,64 @@ button:active {
   background: #59636b;
   box-shadow: none;
 }
+/* =========================================
+   FULL-SCREEN DICE ROLLING
+   ========================================= */
+
+#gameScreen {
+  position: relative;
+}
+
+.diceRollLayer {
+  position: absolute;
+  z-index: 900;
+  inset: 0;
+
+  display: none;
+  overflow: hidden;
+
+  pointer-events: none;
+
+  transition: opacity 260ms ease;
+}
+
+.diceRollLayer.active {
+  display: block;
+}
+
+.diceRollLayer.diceFinished {
+  opacity: 0;
+}
+
+.rollingDie {
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  width: 58px;
+  max-width: none;
+
+  will-change: transform, opacity;
+
+  box-shadow:
+    0 9px 15px rgba(0, 0, 0, 0.42),
+    inset -4px -4px 7px rgba(0, 0, 0, 0.17),
+    inset 3px 3px 5px rgba(255, 255, 255, 0.38);
+}
+
+.diceTray.dice-rolling
+.trayDie:not(.removed-die) {
+  opacity: 0;
+  transform: scale(0.78);
+}
+
+#newGameButton:disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+
+@media (max-width: 350px) {
+  .rollingDie {
+    width: 52px;
+  }
+}
