@@ -1755,3 +1755,123 @@ button:active {
 
   font-weight: 950;
 }
+/* =========================================
+   SETTLED VIRTUAL DICE TRAY
+   ========================================= */
+
+.diceTray {
+  display: none;
+  width: 100%;
+  max-width: 680px;
+  min-height: 62px;
+  flex: 0 0 62px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  align-items: center;
+  gap: 6px;
+
+  margin: 0 auto;
+  padding: 6px 8px;
+
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 15px;
+
+  background:
+    linear-gradient(
+      155deg,
+      rgba(255, 255, 255, 0.075),
+      rgba(255, 255, 255, 0.025)
+    );
+
+  box-shadow:
+    inset 0 2px 8px rgba(0, 0, 0, 0.28),
+    0 5px 14px rgba(0, 0, 0, 0.18);
+}
+
+#gameScreen.virtual-game .diceTray {
+  display: grid;
+}
+
+.trayDie {
+  display: grid;
+  width: 100%;
+  max-width: 47px;
+  aspect-ratio: 1;
+
+  place-self: center;
+  place-items: center;
+
+  color: #111a22;
+  border: 2px solid rgba(255, 255, 255, 0.78);
+  border-radius: 10px;
+
+  font-size: clamp(31px, 9vw, 40px);
+  line-height: 1;
+
+  box-shadow:
+    0 5px 8px rgba(0, 0, 0, 0.32),
+    inset -3px -3px 5px rgba(0, 0, 0, 0.15),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.34);
+}
+
+.whiteDie {
+  background:
+    linear-gradient(
+      145deg,
+      #ffffff,
+      #cfd8e0
+    );
+}
+
+.fireDie {
+  background:
+    linear-gradient(
+      145deg,
+      #ff7568,
+      #bd2929
+    );
+}
+
+.airDie {
+  background:
+    linear-gradient(
+      145deg,
+      #ffe77a,
+      #d39c21
+    );
+}
+
+.earthDie {
+  background:
+    linear-gradient(
+      145deg,
+      #74d987,
+      #278247
+    );
+}
+
+.waterDie {
+  background:
+    linear-gradient(
+      145deg,
+      #69caff,
+      #1972bb
+    );
+}
+
+
+/* Make the tray slightly smaller on short phones */
+
+@media (max-height: 700px) {
+  .diceTray {
+    min-height: 54px;
+    flex-basis: 54px;
+    gap: 4px;
+    padding: 5px 7px;
+  }
+
+  .trayDie {
+    max-width: 41px;
+    border-radius: 8px;
+    font-size: 34px;
+  }
+}
