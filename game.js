@@ -256,7 +256,10 @@ function showGameScreen(mode) {
     mode === "virtual"
       ? "Virtual Dice"
       : "Physical Dice";
-
+  gameScreen.classList.toggle(
+    "virtual-game",
+    mode === "virtual"
+  );
   mainActionButton.textContent =
     "Lock In Selections";
 
