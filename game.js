@@ -477,7 +477,30 @@ mainActionButton.addEventListener("click", function () {
 
 
 cancelLockButton.addEventListener("click", function () {
+  /*
+    Remove all temporary number selections.
+  */
+
+  pendingSelections.forEach(function (button) {
+    button.classList.remove("crossed");
+    button.setAttribute("aria-pressed", "false");
+  });
+
+  pendingSelections = [];
+
+  /*
+    Remove a temporary penalty selection, if present.
+  */
+
+  if (pendingPenalty !== null) {
+    pendingPenalty.classList.remove("pending-penalty");
+    pendingPenalty.setAttribute("aria-pressed", "false");
+
+    pendingPenalty = null;
+  }
+
   closeLockPanel();
+  updateGameState();
 });
 
 
