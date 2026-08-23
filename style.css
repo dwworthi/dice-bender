@@ -1993,3 +1993,34 @@ button:active {
   font-size: clamp(15px, 4.4vw, 19px);
   letter-spacing: -0.3px;
 }
+/* =========================================
+   REMOVED COLORED DICE
+   ========================================= */
+
+.trayDie {
+  transition:
+    opacity 180ms ease,
+    filter 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.trayDie.removed-die {
+  opacity: 0.34;
+
+  filter:
+    grayscale(1)
+    brightness(0.72);
+
+  transform: scale(0.88);
+
+  border-color: rgba(255, 255, 255, 0.22);
+
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.28);
+}
+
+.trayDie.removed-die .pip {
+  background: #59636b;
+  box-shadow: none;
+}
