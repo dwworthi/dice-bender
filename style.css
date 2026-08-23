@@ -1180,3 +1180,63 @@ button:active {
   background: linear-gradient(135deg, #35a4e7, #1764a5);
   font-size: 13px;
 }
+/* =========================================
+   BOTTOM LOCK-IN CONFIRMATION
+   Keeps the score sheet visible
+   ========================================= */
+
+.lockOverlay {
+  align-items: end;
+  justify-items: center;
+
+  padding:
+    12px
+    12px
+    max(12px, env(safe-area-inset-bottom));
+
+  background: transparent;
+
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.lockCard {
+  width: min(100%, 430px);
+  padding: 14px 15px 13px;
+
+  border-radius: 18px;
+
+  background:
+    linear-gradient(
+      155deg,
+      rgba(24, 49, 73, 0.98),
+      rgba(8, 20, 32, 0.98)
+    );
+
+  box-shadow:
+    0 12px 35px rgba(0, 0, 0, 0.58),
+    inset 0 1px 0 rgba(255, 255, 255, 0.13);
+}
+
+.lockElements {
+  margin-bottom: 6px;
+}
+
+.lockElements span {
+  width: 9px;
+  height: 9px;
+  border-width: 1px;
+}
+
+.lockCard h3 {
+  font-size: 21px;
+}
+
+.lockCard p {
+  margin: 4px 0 11px;
+  font-size: 11px;
+}
+
+.lockActions button {
+  min-height: 43px;
+}
