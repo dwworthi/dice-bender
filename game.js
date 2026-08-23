@@ -360,7 +360,10 @@ function openLockPanel() {
   positionLockPanel();
   confirmLockButton.focus();
 }
-
+function closeLockPanel() {
+  lockOverlay.classList.remove("open");
+  lockOverlay.setAttribute("aria-hidden", "true");
+}
 
 /* =========================================
    FINALIZING A TURN
