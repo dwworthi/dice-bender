@@ -50,7 +50,9 @@ const penaltyButtons = Array.from(
 const lockButtons = Array.from(
   document.querySelectorAll(".lockBox")
 );
-
+const trayDice = Array.from(
+  document.querySelectorAll(".trayDie")
+);
 
 /* LOCK-IN PANEL */
 
@@ -238,7 +240,93 @@ function createResultsPanel() {
     document.getElementById("resultsMenuButton");
 }
 
+/* =========================================
+   VIRTUAL DICE
+   ========================================= */
 
+const pipPositionsByValue = {
+  1: [
+    "center"
+  ],
+
+  2: [
+    "topLeft",
+    "bottomRight"
+  ],
+
+  3: [
+    "topLeft",
+    "center",
+    "bottomRight"
+  ],
+
+  4: [
+    "topLeft",
+    "topRight",
+    "bottomLeft",
+    "bottomRight"
+  ],
+
+  5: [
+    "topLeft",
+    "topRight",
+    "center",
+    "bottomLeft",
+    "bottomRight"
+  ],
+
+  6: [
+    "topLeft",
+    "middleLeft",
+    "bottomLeft",
+    "topRight",
+    "middleRight",
+    "bottomRight"
+  ]
+};
+
+
+function getRandomDieValue() {
+  return Math.floor(Math.random() * 6) + 1;
+}
+
+
+function showDieValue(die, value) {
+  die.innerHTML = "";
+  die.dataset.value = value;
+
+  const dieName =
+    die.getAttribute("aria-label")
+      .split(" showing")[0];
+
+  die.setAttribute(
+    "aria-label",
+    `${dieName} showing ${value}`
+  );
+
+
+  pipPositionsByValue[value].forEach(
+    function (positionClass) {
+      const pip =
+        document.createElement("span");
+
+      pip.className =
+        `pip ${positionClass}`;
+
+      die.appendChild(pip);
+    }
+  );
+}
+
+
+function rollVirtualDice() {
+  trayDice.forEach(function (die) {
+    const newValue =
+      getRandomDieValue();
+
+    showDieValue(die, newValue);
+  });
+}
 /* =========================================
    SCREEN CHANGING
    ========================================= */
@@ -260,6 +348,9 @@ function showGameScreen(mode) {
     "virtual-game",
     mode === "virtual"
   );
+     if (mode === "virtual") {
+    rollVirtualDice();
+  }
   mainActionButton.textContent =
     "Lock In Selections";
 
