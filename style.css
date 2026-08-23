@@ -1875,3 +1875,107 @@ button:active {
     font-size: 34px;
   }
 }
+/* =========================================
+   LARGER DICE WITH INDIVIDUAL PIPS
+   ========================================= */
+
+.diceTray {
+  min-height: 72px;
+  flex-basis: 72px;
+
+  gap: 5px;
+  padding: 7px 8px;
+}
+
+.trayDie {
+  position: relative;
+
+  display: grid;
+  width: 100%;
+  max-width: 54px;
+  aspect-ratio: 1;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+
+  padding: 8px;
+
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 12px;
+
+  font-size: 0;
+}
+
+
+/* Individual circular dots */
+
+.trayDie .pip {
+  width: 8px;
+  height: 8px;
+
+  place-self: center;
+
+  border-radius: 50%;
+  background: #17212a;
+
+  box-shadow:
+    inset 0 1px 1px rgba(0, 0, 0, 0.32),
+    0 1px 1px rgba(255, 255, 255, 0.18);
+}
+
+
+/* Pip positions */
+
+.pip.topLeft {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.pip.topRight {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.pip.middleLeft {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.pip.center {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.pip.middleRight {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.pip.bottomLeft {
+  grid-column: 1;
+  grid-row: 3;
+}
+
+.pip.bottomRight {
+  grid-column: 3;
+  grid-row: 3;
+}
+
+
+/* Short-phone adjustment */
+
+@media (max-height: 700px) {
+  .diceTray {
+    min-height: 62px;
+    flex-basis: 62px;
+  }
+
+  .trayDie {
+    max-width: 48px;
+    padding: 7px;
+  }
+
+  .trayDie .pip {
+    width: 7px;
+    height: 7px;
+  }
+}
