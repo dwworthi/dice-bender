@@ -742,7 +742,136 @@ function updateGameState() {
     !hasPendingChoice || gameIsOver;
 }
 
+/* =========================================
+   VIRTUAL DICE SELECTION RULES
+   ========================================= */
 
+function getCurrentDiceValues() {
+  return {
+    whiteOne: Number(trayDice[0].dataset.value),
+    whiteTwo: Number(trayDice[1].dataset.value),
+
+    fire: Number(trayDice[2].dataset.value),
+    air: Number(trayDice[3].dataset.value),
+    earth: Number(trayDice[4].dataset.value),
+    water: Number(trayDice[5].dataset.value)
+  };
+}
+
+
+function getButtonRowColor(button) {
+  const row =
+    button.closest(".scoreRow");
+
+  if (row.classList.contains("fireRow")) {
+    return "fire";
+  }
+
+  if (row.classList.contains("airRow")) {
+    return "air";
+  }
+
+  if (row.classList.contains("earthRow")) {
+    return "earth";
+  }
+
+  return "water";
+}
+
+
+function getButtonNumber(button) {
+  return Number(button.textContent.trim());
+}
+
+
+/*
+  The white action always uses both white dice.
+  It may be used in any colored row.
+*/
+
+function matchesWhiteAction(button) {
+  const dice = getCurrentDiceValues();
+
+  const whiteTotal =
+    dice.whiteOne + dice.whiteTwo;
+
+  return getButtonNumber(button) === whiteTotal;
+}
+
+
+/*
+  The colored action uses one white die plus the
+  colored die matching the selected row.
+*/
+
+function matchesColoredAction(button) {
+  const dice = getCurrentDiceValues();
+
+  const rowColor =
+    getButtonRowColor(button);
+
+  const coloredValue =
+    dice[rowColor];
+
+  const selectedNumber =
+    getButtonNumber(button);
+
+  const firstColoredTotal =
+    dice.whiteOne + coloredValue;
+
+  const secondColoredTotal =
+    dice.whiteTwo + coloredValue;
+
+  return (
+    selectedNumber === firstColoredTotal ||
+    selectedNumber === secondColoredTotal
+  );
+}
+
+
+/*
+  Determine whether all temporary selections can be
+  assigned to one white action and one colored action.
+
+  This allows the player to complete the actions in
+  whichever order is most beneficial.
+*/
+
+function virtualSelectionsAreValid(selections) {
+  if (selections.length === 0) {
+    return true;
+  }
+
+
+  if (selections.length === 1) {
+    return (
+      matchesWhiteAction(selections[0]) ||
+      matchesColoredAction(selections[0])
+    );
+  }
+
+
+  if (selections.length === 2) {
+    const firstSelection = selections[0];
+    const secondSelection = selections[1];
+
+    const firstIsWhiteSecondIsColored =
+      matchesWhiteAction(firstSelection) &&
+      matchesColoredAction(secondSelection);
+
+    const firstIsColoredSecondIsWhite =
+      matchesColoredAction(firstSelection) &&
+      matchesWhiteAction(secondSelection);
+
+    return (
+      firstIsWhiteSecondIsColored ||
+      firstIsColoredSecondIsWhite
+    );
+  }
+
+
+  return false;
+}
 /* =========================================
    NUMBER SELECTIONS
    ========================================= */
@@ -795,6 +924,24 @@ function selectNumber(button) {
 
 
   if (pendingSelections.length >= 2) {
+    return;
+  }
+
+
+  /*
+    Test the possible selection before adding it.
+  */
+
+  const possibleSelections = [
+    ...pendingSelections,
+    button
+  ];
+
+
+  if (
+    currentMode === "virtual" &&
+    !virtualSelectionsAreValid(possibleSelections)
+  ) {
     return;
   }
 
