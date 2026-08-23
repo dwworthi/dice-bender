@@ -81,7 +81,7 @@ let currentMode = null;
 let pendingSelections = [];
 let pendingPenalty = null;
 let gameIsOver = false;
-
+let diceHaveBeenRolled = false;
 
 /* SCORE DISPLAY STATE */
 
@@ -348,11 +348,13 @@ function showGameScreen(mode) {
     "virtual-game",
     mode === "virtual"
   );
-     if (mode === "virtual") {
-    rollVirtualDice();
+  if (mode === "virtual") {
+    diceHaveBeenRolled = false;
+    mainActionButton.textContent = "Roll Dice";
+  } else {
+    mainActionButton.textContent = "Lock In Selections";
   }
-  mainActionButton.textContent =
-    "Lock In Selections";
+
 
   startScreen.classList.remove("active");
   gameScreen.classList.add("active");
@@ -713,6 +715,29 @@ function updateGameState() {
     pendingSelections.length > 0 ||
     pendingPenalty !== null;
 
+
+  /*
+    Before a virtual roll, the main button rolls the dice.
+  */
+
+  if (
+    currentMode === "virtual" &&
+    !diceHaveBeenRolled
+  ) {
+    mainActionButton.textContent = "Roll Dice";
+    mainActionButton.disabled = gameIsOver;
+    return;
+  }
+
+
+  /*
+    After rolling, or in physical mode, the button
+    locks in temporary selections.
+  */
+
+  mainActionButton.textContent =
+    "Lock In Selections";
+
   mainActionButton.disabled =
     !hasPendingChoice || gameIsOver;
 }
@@ -725,6 +750,10 @@ function updateGameState() {
 function selectNumber(button) {
   if (
     gameIsOver ||
+    (
+      currentMode === "virtual" &&
+      !diceHaveBeenRolled
+    ) ||
     button.classList.contains("confirmed")
   ) {
     return;
@@ -788,7 +817,13 @@ function selectNumber(button) {
    ========================================= */
 
 function selectPenalty(button) {
-  if (gameIsOver) {
+  if (
+    gameIsOver ||
+    (
+      currentMode === "virtual" &&
+      !diceHaveBeenRolled
+    )
+  ) {
     return;
   }
 
@@ -1081,6 +1116,11 @@ function confirmSelections() {
 
 
   closeLockPanel();
+
+  if (currentMode === "virtual") {
+    diceHaveBeenRolled = false;
+  }
+
   updateGameState();
   checkForGameEnd();
 }
@@ -1128,7 +1168,7 @@ function clearPendingChoices() {
 
 function clearEntireScoreSheet() {
   gameIsOver = false;
-
+  diceHaveBeenRolled = false;
   numberButtons.forEach(function (button) {
     button.classList.remove(
       "crossed",
@@ -1251,9 +1291,29 @@ menuButton.addEventListener("click", function () {
 
 
 mainActionButton.addEventListener("click", function () {
+  /*
+    In Virtual Dice mode, the button begins each
+    turn by rolling all available dice.
+  */
+
+  if (
+    currentMode === "virtual" &&
+    !diceHaveBeenRolled
+  ) {
+    rollVirtualDice();
+    diceHaveBeenRolled = true;
+
+    updateGameState();
+    return;
+  }
+
+
+  /*
+    After rolling, the same button locks in the turn.
+  */
+
   openLockPanel();
 });
-
 
 cancelLockButton.addEventListener("click", function () {
   clearPendingChoices();
