@@ -129,7 +129,7 @@ function createScoreDisplays() {
     );
 
   scoreHeadingRight.innerHTML =
-    `Player 1 Â· <strong id="totalScore">0</strong> pts`;
+    `Player 1 · <strong id="totalScore">0</strong> pts`;
 
   totalScoreElement =
     document.getElementById("totalScore");
