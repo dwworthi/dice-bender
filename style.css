@@ -1381,3 +1381,37 @@ button:active {
 .scoreRow.locked-row {
   filter: saturate(0.78);
 }
+/* =========================================
+   LOCK BONUS X
+   The lock counts as an additional scoring X
+   ========================================= */
+
+.lockBox.pending-lock,
+.lockBox.confirmed-lock {
+  font-size: 0;
+}
+
+.lockBox.pending-lock::after,
+.lockBox.confirmed-lock::after {
+  content: "×";
+
+  font-size: 27px;
+  font-weight: 950;
+  line-height: 1;
+
+  transform: rotate(-7deg);
+}
+
+
+/* Temporary lock X is gray */
+
+.lockBox.pending-lock::after {
+  color: #7e8993;
+}
+
+
+/* Permanent lock X is black */
+
+.lockBox.confirmed-lock::after {
+  color: #101820;
+}
