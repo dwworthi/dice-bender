@@ -1480,3 +1480,215 @@ button:active {
   border-color: rgba(140, 213, 255, 0.8);
   background: rgba(12, 48, 71, 0.54);
 }
+/* =========================================
+   GAME RESULTS
+   ========================================= */
+
+.resultsOverlay {
+  position: fixed;
+  z-index: 2000;
+  inset: 0;
+
+  display: none;
+  place-items: center;
+
+  padding:
+    max(18px, env(safe-area-inset-top))
+    20px
+    max(18px, env(safe-area-inset-bottom));
+
+  background: rgba(2, 8, 14, 0.82);
+
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+
+.resultsOverlay.open {
+  display: grid;
+}
+
+.resultsCard {
+  width: min(100%, 360px);
+  padding: 21px 18px 17px;
+
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 23px;
+
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(56, 157, 220, 0.25),
+      transparent 42%
+    ),
+    linear-gradient(
+      155deg,
+      #19334c,
+      #091521
+    );
+
+  text-align: center;
+
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.58),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+
+  animation: resultsEntrance 220ms ease-out;
+}
+
+@keyframes resultsEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(15px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.resultsElementDots {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+
+  margin-bottom: 8px;
+}
+
+.resultsElementDots span {
+  width: 11px;
+  height: 11px;
+
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+}
+
+.resultFire {
+  background: var(--fire);
+}
+
+.resultAir {
+  background: var(--air);
+}
+
+.resultEarth {
+  background: var(--earth);
+}
+
+.resultWater {
+  background: var(--water);
+}
+
+.resultsEyebrow {
+  margin: 0 0 3px;
+
+  color: #9fb2c3;
+
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+}
+
+.resultsCard h2 {
+  margin: 0;
+
+  font-size: 26px;
+  font-weight: 950;
+}
+
+.resultsReason {
+  margin: 5px 0 10px;
+  color: #aebdca;
+  font-size: 11px;
+}
+
+.resultsTotal {
+  color: #ffffff;
+
+  font-size: 55px;
+  font-weight: 950;
+  line-height: 0.95;
+
+  text-shadow: 0 5px 16px rgba(0, 0, 0, 0.35);
+}
+
+.resultsPointsLabel {
+  color: #8fa5b7;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.resultsBreakdown {
+  display: grid;
+  gap: 5px;
+
+  margin: 15px 0;
+}
+
+.resultLine {
+  display: flex;
+  min-height: 29px;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 4px 10px;
+
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.fireResult {
+  border-left: 4px solid var(--fire);
+}
+
+.airResult {
+  border-left: 4px solid var(--air);
+}
+
+.earthResult {
+  border-left: 4px solid var(--earth);
+}
+
+.waterResult {
+  border-left: 4px solid var(--water);
+}
+
+.penaltyResult {
+  color: #ffaca2;
+  border-left: 4px solid #cf5549;
+}
+
+.resultLine strong {
+  font-size: 13px;
+}
+
+.resultsActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.resultsActions button {
+  min-height: 47px;
+  padding: 6px;
+
+  color: #e7eef4;
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+
+  font-size: 12px;
+  font-weight: 850;
+}
+
+#resultsNewGameButton {
+  color: #ffffff;
+  border-color: rgba(79, 188, 249, 0.5);
+  background: linear-gradient(135deg, #35a4e7, #1764a5);
+}
