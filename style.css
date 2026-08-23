@@ -1692,3 +1692,66 @@ button:active {
   border-color: rgba(79, 188, 249, 0.5);
   background: linear-gradient(135deg, #35a4e7, #1764a5);
 }
+/* =========================================
+   GAME-ENDING WARNING
+   ========================================= */
+
+.lockCard.ending-warning {
+  padding: 7px;
+
+  border: 2px solid #ffb24d;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(102, 42, 21, 0.99),
+      rgba(43, 18, 15, 0.99)
+    );
+
+  box-shadow:
+    0 0 0 2px rgba(255, 178, 77, 0.2),
+    0 8px 24px rgba(0, 0, 0, 0.58);
+}
+
+.lockCard.ending-warning h3 {
+  display: block;
+
+  margin: 0 0 2px;
+
+  color: #ffd28c;
+
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.lockCard.ending-warning p {
+  display: block;
+
+  margin: 0 0 6px;
+
+  color: #f1cdb4;
+
+  font-size: 9px;
+}
+
+.lockCard.ending-warning .lockActions {
+  gap: 5px;
+}
+
+.lockCard.ending-warning .lockActions button {
+  min-height: 39px;
+}
+
+.lockCard.ending-warning #confirmLockButton {
+  color: #2b1608;
+  border-color: #ffd594;
+
+  background:
+    linear-gradient(
+      135deg,
+      #ffc15e,
+      #e88030
+    );
+
+  font-weight: 950;
+}
