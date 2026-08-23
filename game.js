@@ -2,7 +2,7 @@
 
 /* =========================================
    DICE BENDER
-   Legal rows and penalties
+   Legal rows, penalties, and lock-in panel
    ========================================= */
 
 
@@ -38,6 +38,13 @@ const numberButtons = Array.from(
 const penaltyButtons = Array.from(
   document.querySelectorAll(".penaltyBoxes button")
 );
+
+
+/* LOCK-IN PANEL */
+
+const lockOverlay = document.getElementById("lockOverlay");
+const cancelLockButton = document.getElementById("cancelLockButton");
+const confirmLockButton = document.getElementById("confirmLockButton");
 
 
 /* CURRENT GAME INFORMATION */
@@ -86,13 +93,13 @@ function getRowButtons(row) {
 }
 
 
-function getFurthestSelectedPosition(row) {
+function getFurthestPosition(row, className) {
   const rowButtons = getRowButtons(row);
   let furthestPosition = -1;
 
   rowButtons.forEach(function (button, position) {
     if (
-      button.classList.contains("crossed") &&
+      button.classList.contains(className) &&
       position > furthestPosition
     ) {
       furthestPosition = position;
@@ -110,25 +117,52 @@ function getFurthestSelectedPosition(row) {
 function updateNumberState() {
   scoreRows.forEach(function (row) {
     const rowButtons = getRowButtons(row);
-    const furthestPosition = getFurthestSelectedPosition(row);
+
+    const furthestConfirmedPosition =
+      getFurthestPosition(row, "confirmed");
+
+    const furthestSelectedPosition =
+      getFurthestPosition(row, "crossed");
 
     rowButtons.forEach(function (button, position) {
       const isCrossed = button.classList.contains("crossed");
       const isConfirmed = button.classList.contains("confirmed");
 
+      button.classList.remove("unavailable");
+      button.classList.remove("preview-unavailable");
+
+      /*
+        Crossed numbers remain fully visible.
+      */
+
       if (isCrossed) {
-        button.classList.remove("unavailable");
         button.disabled = isConfirmed;
         return;
       }
 
-      if (position <= furthestPosition) {
+      /*
+        Numbers skipped by a locked selection are
+        permanently unavailable.
+      */
+
+      if (position <= furthestConfirmedPosition) {
         button.classList.add("unavailable");
         button.disabled = true;
-      } else {
-        button.classList.remove("unavailable");
-        button.disabled = false;
+        return;
       }
+
+      /*
+        Numbers skipped only by a temporary selection
+        receive lighter shading.
+      */
+
+      if (position <= furthestSelectedPosition) {
+        button.classList.add("preview-unavailable");
+        button.disabled = true;
+        return;
+      }
+
+      button.disabled = false;
     });
   });
 }
@@ -159,11 +193,6 @@ function updatePenaltyState() {
       button.disabled = true;
       return;
     }
-
-    /*
-      Only the next empty penalty box can be selected.
-      Future penalty boxes silently ignore taps.
-    */
 
     button.disabled = (
       button !== nextPenaltyButton &&
@@ -199,7 +228,7 @@ function selectNumber(button) {
   }
 
   /*
-    Tap an existing temporary number to remove it.
+    Tap a temporary selection again to remove it.
   */
 
   if (pendingSelections.includes(button)) {
@@ -216,15 +245,14 @@ function selectNumber(button) {
     return;
   }
 
-  /*
-    A penalty cannot be combined with number selections.
-  */
-
   if (pendingPenalty !== null) {
     return;
   }
 
-  if (button.classList.contains("unavailable")) {
+  if (
+    button.classList.contains("unavailable") ||
+    button.classList.contains("preview-unavailable")
+  ) {
     return;
   }
 
@@ -246,10 +274,6 @@ function selectNumber(button) {
    ========================================= */
 
 function selectPenalty(button) {
-  /*
-    Tap the temporary penalty again to remove it.
-  */
-
   if (button === pendingPenalty) {
     button.classList.remove("pending-penalty");
     button.setAttribute("aria-pressed", "false");
@@ -259,10 +283,6 @@ function selectPenalty(button) {
     updateGameState();
     return;
   }
-
-  /*
-    A penalty cannot be combined with number selections.
-  */
 
   if (pendingSelections.length > 0) {
     return;
@@ -286,10 +306,10 @@ function selectPenalty(button) {
 
 
 /* =========================================
-   LOCKING IN A TURN
+   CUSTOM LOCK-IN PANEL
    ========================================= */
 
-function lockInSelections() {
+function openLockPanel() {
   const hasPendingChoice =
     pendingSelections.length > 0 ||
     pendingPenalty !== null;
@@ -298,14 +318,24 @@ function lockInSelections() {
     return;
   }
 
-  const shouldLockSelections = window.confirm(
-    "Are you sure? This cannot be undone."
-  );
+  lockOverlay.classList.add("open");
+  lockOverlay.setAttribute("aria-hidden", "false");
 
-  if (!shouldLockSelections) {
-    return;
-  }
+  confirmLockButton.focus();
+}
 
+
+function closeLockPanel() {
+  lockOverlay.classList.remove("open");
+  lockOverlay.setAttribute("aria-hidden", "true");
+}
+
+
+/* =========================================
+   FINALIZING A TURN
+   ========================================= */
+
+function confirmSelections() {
   pendingSelections.forEach(function (button) {
     button.classList.add("confirmed");
   });
@@ -320,6 +350,7 @@ function lockInSelections() {
     pendingPenalty = null;
   }
 
+  closeLockPanel();
   updateGameState();
 }
 
@@ -333,6 +364,7 @@ function clearEntireScoreSheet() {
     button.classList.remove("crossed");
     button.classList.remove("confirmed");
     button.classList.remove("unavailable");
+    button.classList.remove("preview-unavailable");
 
     button.setAttribute("aria-pressed", "false");
     button.disabled = false;
@@ -349,12 +381,13 @@ function clearEntireScoreSheet() {
   pendingSelections = [];
   pendingPenalty = null;
 
+  closeLockPanel();
   updateGameState();
 }
 
 
 /* =========================================
-   NUMBER-BUTTON ACTIONS
+   BUTTON ACTIONS
    ========================================= */
 
 numberButtons.forEach(function (button) {
@@ -366,10 +399,6 @@ numberButtons.forEach(function (button) {
 });
 
 
-/* =========================================
-   PENALTY-BUTTON ACTIONS
-   ========================================= */
-
 penaltyButtons.forEach(function (button) {
   button.setAttribute("aria-pressed", "false");
 
@@ -378,10 +407,6 @@ penaltyButtons.forEach(function (button) {
   });
 });
 
-
-/* =========================================
-   START SCREEN ACTIONS
-   ========================================= */
 
 virtualModeButton.addEventListener("click", function () {
   showGameScreen("virtual");
@@ -400,10 +425,6 @@ howToPlayButton.addEventListener("click", function () {
 });
 
 
-/* =========================================
-   GAME SCREEN ACTIONS
-   ========================================= */
-
 backButton.addEventListener("click", function () {
   showStartScreen();
 });
@@ -417,7 +438,34 @@ menuButton.addEventListener("click", function () {
 
 
 mainActionButton.addEventListener("click", function () {
-  lockInSelections();
+  openLockPanel();
+});
+
+
+cancelLockButton.addEventListener("click", function () {
+  closeLockPanel();
+});
+
+
+confirmLockButton.addEventListener("click", function () {
+  confirmSelections();
+});
+
+
+lockOverlay.addEventListener("click", function (event) {
+  if (event.target === lockOverlay) {
+    closeLockPanel();
+  }
+});
+
+
+document.addEventListener("keydown", function (event) {
+  if (
+    event.key === "Escape" &&
+    lockOverlay.classList.contains("open")
+  ) {
+    closeLockPanel();
+  }
 });
 
 
