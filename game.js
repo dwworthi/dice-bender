@@ -66,6 +66,12 @@ const confirmLockButton =
 const lockCard =
   document.querySelector(".lockCard");
 
+const lockTitle =
+  document.getElementById("lockTitle");
+
+const lockMessage =
+  lockCard.querySelector("p");
+
 
 /* GAME STATE */
 
@@ -736,15 +742,51 @@ function selectPenalty(button) {
    LOCK CONFIRMATION
    ========================================= */
 
+function pendingChoiceWillEndGame() {
+  const penaltyWillEndGame =
+    pendingPenalty !== null &&
+    getConfirmedPenaltyCount() === 3;
+
+
+  const pendingRowLocks =
+    scoreRows.filter(function (row) {
+      const finalButton =
+        getFinalNumberButton(row);
+
+      const alreadyLocked =
+        finalButton.classList.contains("confirmed");
+
+      const willBecomeLocked =
+        pendingSelections.includes(finalButton);
+
+      return (
+        !alreadyLocked &&
+        willBecomeLocked
+      );
+    }).length;
+
+
+  const rowLockWillEndGame =
+    getLockedRowCount() + pendingRowLocks >= 2;
+
+
+  return (
+    penaltyWillEndGame ||
+    rowLockWillEndGame
+  );
+}
+
+
 function positionLockPanel() {
   const buttonPosition =
     mainActionButton.getBoundingClientRect();
 
   const panelGap = 5;
-  const panelHeight = 53;
+  const panelHeight = lockCard.offsetHeight;
 
   let panelTop =
     buttonPosition.bottom + panelGap;
+
 
   if (
     panelTop + panelHeight >
@@ -755,6 +797,7 @@ function positionLockPanel() {
       panelHeight -
       panelGap;
   }
+
 
   lockCard.style.left =
     `${buttonPosition.left}px`;
@@ -768,15 +811,55 @@ function positionLockPanel() {
 
 
 function openLockPanel() {
+  const hasPendingChoice =
+    pendingSelections.length > 0 ||
+    pendingPenalty !== null;
+
+
   if (
     gameIsOver ||
-    (
-      pendingSelections.length === 0 &&
-      pendingPenalty === null
-    )
+    !hasPendingChoice
   ) {
     return;
   }
+
+
+  const willEndGame =
+    pendingChoiceWillEndGame();
+
+
+  lockCard.classList.toggle(
+    "ending-warning",
+    willEndGame
+  );
+
+
+  if (willEndGame) {
+    lockTitle.textContent =
+      "This ends the game";
+
+    lockMessage.textContent =
+      "Your current score will become final.";
+
+    cancelLockButton.textContent =
+      "Go Back";
+
+    confirmLockButton.textContent =
+      "End Game";
+  } else {
+    lockTitle.textContent =
+      "Lock it in?";
+
+    lockMessage.textContent =
+      "These selections will become permanent.";
+
+    cancelLockButton.textContent =
+      "Keep Choosing";
+
+    confirmLockButton.textContent =
+      "Lock It In";
+  }
+
 
   lockOverlay.classList.add("open");
 
@@ -784,6 +867,7 @@ function openLockPanel() {
     "aria-hidden",
     "false"
   );
+
 
   positionLockPanel();
   confirmLockButton.focus();
@@ -798,7 +882,6 @@ function closeLockPanel() {
     "true"
   );
 }
-
 
 /* =========================================
    RESULTS
