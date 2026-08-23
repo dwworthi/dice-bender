@@ -2,30 +2,38 @@
 
 /* =========================================
    DICE BENDER
-   Rows, penalties, locks, and scoring
+   Complete physical score-sheet prototype
    ========================================= */
 
 
-/* SCREEN ELEMENTS */
+/* MAIN ELEMENTS */
 
 const startScreen = document.getElementById("startScreen");
 const gameScreen = document.getElementById("gameScreen");
 
+const virtualModeButton =
+  document.getElementById("virtualModeButton");
 
-/* START SCREEN BUTTONS */
+const physicalModeButton =
+  document.getElementById("physicalModeButton");
 
-const virtualModeButton = document.getElementById("virtualModeButton");
-const physicalModeButton = document.getElementById("physicalModeButton");
-const howToPlayButton = document.getElementById("howToPlayButton");
+const howToPlayButton =
+  document.getElementById("howToPlayButton");
 
+const backButton =
+  document.getElementById("backButton");
 
-/* GAME SCREEN ELEMENTS */
+const menuButton =
+  document.getElementById("menuButton");
 
-const backButton = document.getElementById("backButton");
-const menuButton = document.getElementById("menuButton");
-const mainActionButton = document.getElementById("mainActionButton");
-const newGameButton = document.getElementById("newGameButton");
-const modeLabel = document.getElementById("modeLabel");
+const mainActionButton =
+  document.getElementById("mainActionButton");
+
+const newGameButton =
+  document.getElementById("newGameButton");
+
+const modeLabel =
+  document.getElementById("modeLabel");
 
 const scoreRows = Array.from(
   document.querySelectorAll(".scoreRow")
@@ -46,20 +54,28 @@ const lockButtons = Array.from(
 
 /* LOCK-IN PANEL */
 
-const lockOverlay = document.getElementById("lockOverlay");
-const cancelLockButton = document.getElementById("cancelLockButton");
-const confirmLockButton = document.getElementById("confirmLockButton");
-const lockCard = document.querySelector(".lockCard");
+const lockOverlay =
+  document.getElementById("lockOverlay");
+
+const cancelLockButton =
+  document.getElementById("cancelLockButton");
+
+const confirmLockButton =
+  document.getElementById("confirmLockButton");
+
+const lockCard =
+  document.querySelector(".lockCard");
 
 
-/* CURRENT GAME INFORMATION */
+/* GAME STATE */
 
 let currentMode = null;
 let pendingSelections = [];
 let pendingPenalty = null;
+let gameIsOver = false;
 
 
-/* SCORE DISPLAY ELEMENTS */
+/* SCORE DISPLAY STATE */
 
 let totalScoreElement = null;
 let penaltyScoreElement = null;
@@ -67,19 +83,28 @@ let penaltyScoreElement = null;
 const rowScoreElements = new Map();
 
 
+/* RESULTS PANEL ELEMENTS */
+
+let resultsOverlay = null;
+let resultsReason = null;
+let resultsTotal = null;
+let resultsRowScores = [];
+let resultsPenalty = null;
+let resultsNewGameButton = null;
+let resultsMenuButton = null;
+
+
 /* =========================================
    CREATE SCORE DISPLAYS
    ========================================= */
 
 function createScoreDisplays() {
-  /*
-    Add a small score underneath each elemental icon.
-  */
-
   scoreRows.forEach(function (row) {
-    const rowElement = row.querySelector(".rowElement");
+    const rowElement =
+      row.querySelector(".rowElement");
 
-    const scoreElement = document.createElement("strong");
+    const scoreElement =
+      document.createElement("strong");
 
     scoreElement.className = "rowScore";
     scoreElement.textContent = "0";
@@ -89,12 +114,10 @@ function createScoreDisplays() {
   });
 
 
-  /*
-    Replace the Player 1 label with a running total.
-  */
-
   const scoreHeadingRight =
-    document.querySelector(".scoreHeading span:last-child");
+    document.querySelector(
+      ".scoreHeading span:last-child"
+    );
 
   scoreHeadingRight.innerHTML =
     `Player 1 · <strong id="totalScore">0</strong> pts`;
@@ -102,10 +125,6 @@ function createScoreDisplays() {
   totalScoreElement =
     document.getElementById("totalScore");
 
-
-  /*
-    Turn the penalty label into a running penalty total.
-  */
 
   const penaltyValue =
     document.querySelector(".penaltyValue");
@@ -115,6 +134,102 @@ function createScoreDisplays() {
 
   penaltyScoreElement =
     document.getElementById("penaltyScore");
+}
+
+
+/* =========================================
+   CREATE RESULTS PANEL
+   ========================================= */
+
+function createResultsPanel() {
+  resultsOverlay = document.createElement("div");
+  resultsOverlay.className = "resultsOverlay";
+  resultsOverlay.setAttribute("aria-hidden", "true");
+
+  resultsOverlay.innerHTML = `
+    <section
+      class="resultsCard"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="resultsTitle"
+    >
+      <div class="resultsElementDots" aria-hidden="true">
+        <span class="resultFire"></span>
+        <span class="resultAir"></span>
+        <span class="resultEarth"></span>
+        <span class="resultWater"></span>
+      </div>
+
+      <p class="resultsEyebrow">Game Complete</p>
+      <h2 id="resultsTitle">Final Score</h2>
+      <p id="resultsReason" class="resultsReason"></p>
+
+      <div id="resultsTotal" class="resultsTotal">0</div>
+      <span class="resultsPointsLabel">points</span>
+
+      <div class="resultsBreakdown">
+        <div class="resultLine fireResult">
+          <span>Fire</span>
+          <strong>0</strong>
+        </div>
+
+        <div class="resultLine airResult">
+          <span>Air</span>
+          <strong>0</strong>
+        </div>
+
+        <div class="resultLine earthResult">
+          <span>Earth</span>
+          <strong>0</strong>
+        </div>
+
+        <div class="resultLine waterResult">
+          <span>Water</span>
+          <strong>0</strong>
+        </div>
+
+        <div class="resultLine penaltyResult">
+          <span>Penalties</span>
+          <strong>0</strong>
+        </div>
+      </div>
+
+      <div class="resultsActions">
+        <button id="resultsMenuButton" type="button">
+          Main Menu
+        </button>
+
+        <button id="resultsNewGameButton" type="button">
+          New Game
+        </button>
+      </div>
+    </section>
+  `;
+
+  document.body.appendChild(resultsOverlay);
+
+  resultsReason =
+    document.getElementById("resultsReason");
+
+  resultsTotal =
+    document.getElementById("resultsTotal");
+
+  resultsRowScores = Array.from(
+    document.querySelectorAll(
+      ".resultsBreakdown .resultLine:not(.penaltyResult) strong"
+    )
+  );
+
+  resultsPenalty =
+    document.querySelector(
+      ".penaltyResult strong"
+    );
+
+  resultsNewGameButton =
+    document.getElementById("resultsNewGameButton");
+
+  resultsMenuButton =
+    document.getElementById("resultsMenuButton");
 }
 
 
@@ -131,13 +246,13 @@ function showStartScreen() {
 function showGameScreen(mode) {
   currentMode = mode;
 
-  if (mode === "virtual") {
-    modeLabel.textContent = "Virtual Dice";
-  } else {
-    modeLabel.textContent = "Physical Dice";
-  }
+  modeLabel.textContent =
+    mode === "virtual"
+      ? "Virtual Dice"
+      : "Physical Dice";
 
-  mainActionButton.textContent = "Lock In Selections";
+  mainActionButton.textContent =
+    "Lock In Selections";
 
   startScreen.classList.remove("active");
   gameScreen.classList.add("active");
@@ -182,9 +297,7 @@ function getFurthestPosition(row, className) {
 
 
 function getCrossedCountBeforeFinal(row) {
-  const rowButtons = getRowButtons(row);
-
-  return rowButtons
+  return getRowButtons(row)
     .slice(0, -1)
     .filter(function (button) {
       return button.classList.contains("crossed");
@@ -199,26 +312,31 @@ function getCrossedCountBeforeFinal(row) {
 
 function enforceFinalNumberRules() {
   scoreRows.forEach(function (row) {
-    const finalButton = getFinalNumberButton(row);
+    const finalButton =
+      getFinalNumberButton(row);
 
-    const isTemporarilySelected =
+    const finalIsPending =
       pendingSelections.includes(finalButton);
 
     const crossedBeforeFinal =
       getCrossedCountBeforeFinal(row);
 
     if (
-      isTemporarilySelected &&
+      finalIsPending &&
       crossedBeforeFinal < 5
     ) {
       finalButton.classList.remove("crossed");
-      finalButton.setAttribute("aria-pressed", "false");
-
-      pendingSelections = pendingSelections.filter(
-        function (button) {
-          return button !== finalButton;
-        }
+      finalButton.setAttribute(
+        "aria-pressed",
+        "false"
       );
+
+      pendingSelections =
+        pendingSelections.filter(
+          function (button) {
+            return button !== finalButton;
+          }
+        );
     }
   });
 }
@@ -233,8 +351,11 @@ function updateNumberAndLockState() {
 
   scoreRows.forEach(function (row) {
     const rowButtons = getRowButtons(row);
-    const finalButton = getFinalNumberButton(row);
-    const lockButton = row.querySelector(".lockBox");
+    const finalButton =
+      getFinalNumberButton(row);
+
+    const lockButton =
+      row.querySelector(".lockBox");
 
     const crossedBeforeFinal =
       getCrossedCountBeforeFinal(row);
@@ -292,12 +413,17 @@ function updateNumberAndLockState() {
 
 
       if (isCrossed) {
-        button.disabled = isConfirmed;
+        button.disabled =
+          isConfirmed || gameIsOver;
+
         return;
       }
 
 
-      if (finalIsConfirmed) {
+      if (
+        finalIsConfirmed ||
+        gameIsOver
+      ) {
         button.classList.add("unavailable");
         button.disabled = true;
         return;
@@ -312,7 +438,10 @@ function updateNumberAndLockState() {
 
 
       if (position <= furthestSelectedPosition) {
-        button.classList.add("preview-unavailable");
+        button.classList.add(
+          "preview-unavailable"
+        );
+
         button.disabled = true;
         return;
       }
@@ -327,6 +456,7 @@ function updateNumberAndLockState() {
         return;
       }
 
+
       button.disabled = false;
     });
   });
@@ -339,22 +469,30 @@ function updateNumberAndLockState() {
 
 function getNextPenaltyButton() {
   return penaltyButtons.find(function (button) {
-    return !button.classList.contains("confirmed-penalty");
+    return !button.classList.contains(
+      "confirmed-penalty"
+    );
   });
 }
 
 
 function updatePenaltyState() {
-  const nextPenaltyButton = getNextPenaltyButton();
+  const nextPenaltyButton =
+    getNextPenaltyButton();
 
   penaltyButtons.forEach(function (button) {
-    const isConfirmed = button.classList.contains(
-      "confirmed-penalty"
-    );
+    const isConfirmed =
+      button.classList.contains(
+        "confirmed-penalty"
+      );
 
-    const isPending = button === pendingPenalty;
+    const isPending =
+      button === pendingPenalty;
 
-    if (isConfirmed) {
+    if (
+      isConfirmed ||
+      gameIsOver
+    ) {
       button.disabled = true;
       return;
     }
@@ -368,15 +506,10 @@ function updatePenaltyState() {
 
 
 /* =========================================
-   SCORE CALCULATION
+   SCORING
    ========================================= */
 
 function calculatePoints(crossCount) {
-  /*
-    This creates the standard scoring sequence:
-    1, 3, 6, 10, 15, 21, and so forth.
-  */
-
   return crossCount * (crossCount + 1) / 2;
 }
 
@@ -388,21 +521,24 @@ function updateScores() {
 
   scoreRows.forEach(function (row) {
     const rowButtons = getRowButtons(row);
-    const finalButton = getFinalNumberButton(row);
+
+    const finalButton =
+      getFinalNumberButton(row);
 
     const numberCrosses =
       rowButtons.filter(function (button) {
         return button.classList.contains("crossed");
       }).length;
 
-    const hasLockCross =
-      finalButton.classList.contains("crossed");
-
-    const totalRowCrosses =
-      numberCrosses + (hasLockCross ? 1 : 0);
+    const lockCross =
+      finalButton.classList.contains("crossed")
+        ? 1
+        : 0;
 
     const rowPoints =
-      calculatePoints(totalRowCrosses);
+      calculatePoints(
+        numberCrosses + lockCross
+      );
 
     const rowHasTemporarySelection =
       rowButtons.some(function (button) {
@@ -477,29 +613,38 @@ function updateGameState() {
     pendingSelections.length > 0 ||
     pendingPenalty !== null;
 
-  mainActionButton.disabled = !hasPendingChoice;
+  mainActionButton.disabled =
+    !hasPendingChoice || gameIsOver;
 }
 
 
 /* =========================================
-   TEMPORARY NUMBER SELECTIONS
+   NUMBER SELECTIONS
    ========================================= */
 
 function selectNumber(button) {
-  if (button.classList.contains("confirmed")) {
+  if (
+    gameIsOver ||
+    button.classList.contains("confirmed")
+  ) {
     return;
   }
 
 
   if (pendingSelections.includes(button)) {
     button.classList.remove("crossed");
-    button.setAttribute("aria-pressed", "false");
 
-    pendingSelections = pendingSelections.filter(
-      function (selectedButton) {
-        return selectedButton !== button;
-      }
+    button.setAttribute(
+      "aria-pressed",
+      "false"
     );
+
+    pendingSelections =
+      pendingSelections.filter(
+        function (selectedButton) {
+          return selectedButton !== button;
+        }
+      );
 
     updateGameState();
     return;
@@ -526,7 +671,11 @@ function selectNumber(button) {
 
 
   button.classList.add("crossed");
-  button.setAttribute("aria-pressed", "true");
+
+  button.setAttribute(
+    "aria-pressed",
+    "true"
+  );
 
   pendingSelections.push(button);
 
@@ -535,13 +684,22 @@ function selectNumber(button) {
 
 
 /* =========================================
-   TEMPORARY PENALTY
+   PENALTY SELECTION
    ========================================= */
 
 function selectPenalty(button) {
+  if (gameIsOver) {
+    return;
+  }
+
+
   if (button === pendingPenalty) {
     button.classList.remove("pending-penalty");
-    button.setAttribute("aria-pressed", "false");
+
+    button.setAttribute(
+      "aria-pressed",
+      "false"
+    );
 
     pendingPenalty = null;
 
@@ -550,17 +708,13 @@ function selectPenalty(button) {
   }
 
 
-  if (pendingSelections.length > 0) {
-    return;
-  }
-
-
-  if (button.classList.contains("confirmed-penalty")) {
-    return;
-  }
-
-
-  if (button !== getNextPenaltyButton()) {
+  if (
+    pendingSelections.length > 0 ||
+    button.classList.contains(
+      "confirmed-penalty"
+    ) ||
+    button !== getNextPenaltyButton()
+  ) {
     return;
   }
 
@@ -568,14 +722,18 @@ function selectPenalty(button) {
   pendingPenalty = button;
 
   button.classList.add("pending-penalty");
-  button.setAttribute("aria-pressed", "true");
+
+  button.setAttribute(
+    "aria-pressed",
+    "true"
+  );
 
   updateGameState();
 }
 
 
 /* =========================================
-   COMPACT LOCK CONFIRMATION
+   LOCK CONFIRMATION
    ========================================= */
 
 function positionLockPanel() {
@@ -583,18 +741,18 @@ function positionLockPanel() {
     mainActionButton.getBoundingClientRect();
 
   const panelGap = 5;
-  const expectedPanelHeight = 53;
+  const panelHeight = 53;
 
   let panelTop =
     buttonPosition.bottom + panelGap;
 
   if (
-    panelTop + expectedPanelHeight >
+    panelTop + panelHeight >
     window.innerHeight - 6
   ) {
     panelTop =
       buttonPosition.top -
-      expectedPanelHeight -
+      panelHeight -
       panelGap;
   }
 
@@ -610,16 +768,22 @@ function positionLockPanel() {
 
 
 function openLockPanel() {
-  const hasPendingChoice =
-    pendingSelections.length > 0 ||
-    pendingPenalty !== null;
-
-  if (!hasPendingChoice) {
+  if (
+    gameIsOver ||
+    (
+      pendingSelections.length === 0 &&
+      pendingPenalty === null
+    )
+  ) {
     return;
   }
 
   lockOverlay.classList.add("open");
-  lockOverlay.setAttribute("aria-hidden", "false");
+
+  lockOverlay.setAttribute(
+    "aria-hidden",
+    "false"
+  );
 
   positionLockPanel();
   confirmLockButton.focus();
@@ -628,7 +792,88 @@ function openLockPanel() {
 
 function closeLockPanel() {
   lockOverlay.classList.remove("open");
-  lockOverlay.setAttribute("aria-hidden", "true");
+
+  lockOverlay.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+}
+
+
+/* =========================================
+   RESULTS
+   ========================================= */
+
+function getConfirmedPenaltyCount() {
+  return penaltyButtons.filter(function (button) {
+    return button.classList.contains(
+      "confirmed-penalty"
+    );
+  }).length;
+}
+
+
+function getLockedRowCount() {
+  return scoreRows.filter(function (row) {
+    return getFinalNumberButton(row)
+      .classList.contains("confirmed");
+  }).length;
+}
+
+
+function openResultsPanel(reason) {
+  gameIsOver = true;
+
+  closeLockPanel();
+  updateGameState();
+
+  resultsReason.textContent = reason;
+  resultsTotal.textContent =
+    totalScoreElement.textContent;
+
+  scoreRows.forEach(function (row, index) {
+    resultsRowScores[index].textContent =
+      rowScoreElements.get(row).textContent;
+  });
+
+  resultsPenalty.textContent =
+    penaltyScoreElement.textContent;
+
+  resultsOverlay.classList.add("open");
+
+  resultsOverlay.setAttribute(
+    "aria-hidden",
+    "false"
+  );
+
+  resultsNewGameButton.focus();
+}
+
+
+function closeResultsPanel() {
+  resultsOverlay.classList.remove("open");
+
+  resultsOverlay.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+}
+
+
+function checkForGameEnd() {
+  if (getConfirmedPenaltyCount() >= 4) {
+    openResultsPanel(
+      "Four penalties ended the game."
+    );
+
+    return;
+  }
+
+  if (getLockedRowCount() >= 2) {
+    openResultsPanel(
+      "Two elemental rows were locked."
+    );
+  }
 }
 
 
@@ -645,35 +890,51 @@ function confirmSelections() {
 
 
   if (pendingPenalty !== null) {
-    pendingPenalty.classList.remove("pending-penalty");
-    pendingPenalty.classList.add("confirmed-penalty");
-    pendingPenalty.disabled = true;
+    pendingPenalty.classList.remove(
+      "pending-penalty"
+    );
 
+    pendingPenalty.classList.add(
+      "confirmed-penalty"
+    );
+
+    pendingPenalty.disabled = true;
     pendingPenalty = null;
   }
 
 
   closeLockPanel();
   updateGameState();
+  checkForGameEnd();
 }
 
 
 /* =========================================
-   CLEARING TEMPORARY CHOICES
+   CLEAR TEMPORARY CHOICES
    ========================================= */
 
 function clearPendingChoices() {
   pendingSelections.forEach(function (button) {
     button.classList.remove("crossed");
-    button.setAttribute("aria-pressed", "false");
+
+    button.setAttribute(
+      "aria-pressed",
+      "false"
+    );
   });
 
   pendingSelections = [];
 
 
   if (pendingPenalty !== null) {
-    pendingPenalty.classList.remove("pending-penalty");
-    pendingPenalty.setAttribute("aria-pressed", "false");
+    pendingPenalty.classList.remove(
+      "pending-penalty"
+    );
+
+    pendingPenalty.setAttribute(
+      "aria-pressed",
+      "false"
+    );
 
     pendingPenalty = null;
   }
@@ -689,31 +950,47 @@ function clearPendingChoices() {
    ========================================= */
 
 function clearEntireScoreSheet() {
-  numberButtons.forEach(function (button) {
-    button.classList.remove("crossed");
-    button.classList.remove("confirmed");
-    button.classList.remove("unavailable");
-    button.classList.remove("preview-unavailable");
-    button.classList.remove("final-restricted");
+  gameIsOver = false;
 
-    button.setAttribute("aria-pressed", "false");
+  numberButtons.forEach(function (button) {
+    button.classList.remove(
+      "crossed",
+      "confirmed",
+      "unavailable",
+      "preview-unavailable",
+      "final-restricted"
+    );
+
+    button.setAttribute(
+      "aria-pressed",
+      "false"
+    );
+
     button.disabled = false;
   });
 
 
   penaltyButtons.forEach(function (button) {
-    button.classList.remove("pending-penalty");
-    button.classList.remove("confirmed-penalty");
+    button.classList.remove(
+      "pending-penalty",
+      "confirmed-penalty"
+    );
 
-    button.setAttribute("aria-pressed", "false");
+    button.setAttribute(
+      "aria-pressed",
+      "false"
+    );
+
     button.disabled = false;
   });
 
 
   lockButtons.forEach(function (button) {
-    button.classList.remove("pending-lock");
-    button.classList.remove("confirmed-lock");
-    button.classList.remove("unavailable-lock");
+    button.classList.remove(
+      "pending-lock",
+      "confirmed-lock",
+      "unavailable-lock"
+    );
   });
 
 
@@ -726,8 +1003,17 @@ function clearEntireScoreSheet() {
   pendingPenalty = null;
 
   closeLockPanel();
+  closeResultsPanel();
   updateGameState();
 }
+
+
+/* =========================================
+   INITIAL DISPLAY SETUP
+   ========================================= */
+
+createScoreDisplays();
+createResultsPanel();
 
 
 /* =========================================
@@ -735,7 +1021,10 @@ function clearEntireScoreSheet() {
    ========================================= */
 
 numberButtons.forEach(function (button) {
-  button.setAttribute("aria-pressed", "false");
+  button.setAttribute(
+    "aria-pressed",
+    "false"
+  );
 
   button.addEventListener("click", function () {
     selectNumber(button);
@@ -744,7 +1033,10 @@ numberButtons.forEach(function (button) {
 
 
 penaltyButtons.forEach(function (button) {
-  button.setAttribute("aria-pressed", "false");
+  button.setAttribute(
+    "aria-pressed",
+    "false"
+  );
 
   button.addEventListener("click", function () {
     selectPenalty(button);
@@ -803,16 +1095,6 @@ lockOverlay.addEventListener("click", function (event) {
 });
 
 
-document.addEventListener("keydown", function (event) {
-  if (
-    event.key === "Escape" &&
-    lockOverlay.classList.contains("open")
-  ) {
-    closeLockPanel();
-  }
-});
-
-
 newGameButton.addEventListener("click", function () {
   const shouldStartNewGame = window.confirm(
     "Start a new game? The entire score sheet will be cleared."
@@ -824,6 +1106,33 @@ newGameButton.addEventListener("click", function () {
 });
 
 
+resultsNewGameButton.addEventListener(
+  "click",
+  function () {
+    clearEntireScoreSheet();
+  }
+);
+
+
+resultsMenuButton.addEventListener(
+  "click",
+  function () {
+    clearEntireScoreSheet();
+    showStartScreen();
+  }
+);
+
+
+document.addEventListener("keydown", function (event) {
+  if (
+    event.key === "Escape" &&
+    lockOverlay.classList.contains("open")
+  ) {
+    closeLockPanel();
+  }
+});
+
+
 window.addEventListener("resize", function () {
   if (lockOverlay.classList.contains("open")) {
     positionLockPanel();
@@ -831,9 +1140,6 @@ window.addEventListener("resize", function () {
 });
 
 
-/* =========================================
-   INITIAL SETUP
-   ========================================= */
+/* INITIAL GAME STATE */
 
-createScoreDisplays();
 updateGameState();
