@@ -263,7 +263,49 @@
 
   </main>
 
+  <!-- CUSTOM LOCK-IN CONFIRMATION -->
 
+  <div
+    id="lockOverlay"
+    class="lockOverlay"
+    aria-hidden="true"
+  >
+
+    <div
+      class="lockCard"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="lockTitle"
+    >
+
+      <div class="lockElements" aria-hidden="true">
+        <span class="miniFire"></span>
+        <span class="miniAir"></span>
+        <span class="miniEarth"></span>
+        <span class="miniWater"></span>
+      </div>
+
+      <h3 id="lockTitle">Lock it in?</h3>
+
+      <p>
+        These selections will become permanent.
+      </p>
+
+      <div class="lockActions">
+
+        <button id="cancelLockButton" type="button">
+          Keep Choosing
+        </button>
+
+        <button id="confirmLockButton" type="button">
+          Lock It In
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
   <!--
     The JavaScript file receives the same automatic cache-busting value.
   -->
