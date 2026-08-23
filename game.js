@@ -2,7 +2,7 @@
 
 /* =========================================
    DICE BENDER
-   Legal rows, penalties, and row locking
+   Rows, penalties, locks, and scoring
    ========================================= */
 
 
@@ -57,6 +57,65 @@ const lockCard = document.querySelector(".lockCard");
 let currentMode = null;
 let pendingSelections = [];
 let pendingPenalty = null;
+
+
+/* SCORE DISPLAY ELEMENTS */
+
+let totalScoreElement = null;
+let penaltyScoreElement = null;
+
+const rowScoreElements = new Map();
+
+
+/* =========================================
+   CREATE SCORE DISPLAYS
+   ========================================= */
+
+function createScoreDisplays() {
+  /*
+    Add a small score underneath each elemental icon.
+  */
+
+  scoreRows.forEach(function (row) {
+    const rowElement = row.querySelector(".rowElement");
+
+    const scoreElement = document.createElement("strong");
+
+    scoreElement.className = "rowScore";
+    scoreElement.textContent = "0";
+
+    rowElement.appendChild(scoreElement);
+    rowScoreElements.set(row, scoreElement);
+  });
+
+
+  /*
+    Replace the Player 1 label with a running total.
+  */
+
+  const scoreHeadingRight =
+    document.querySelector(".scoreHeading span:last-child");
+
+  scoreHeadingRight.innerHTML =
+    `Player 1 · <strong id="totalScore">0</strong> pts`;
+
+  totalScoreElement =
+    document.getElementById("totalScore");
+
+
+  /*
+    Turn the penalty label into a running penalty total.
+  */
+
+  const penaltyValue =
+    document.querySelector(".penaltyValue");
+
+  penaltyValue.innerHTML =
+    `<strong id="penaltyScore">0</strong> pts`;
+
+  penaltyScoreElement =
+    document.getElementById("penaltyScore");
+}
 
 
 /* =========================================
@@ -148,11 +207,6 @@ function enforceFinalNumberRules() {
     const crossedBeforeFinal =
       getCrossedCountBeforeFinal(row);
 
-    /*
-      If a temporary selection that made the final number
-      eligible is removed, the final number is also released.
-    */
-
     if (
       isTemporarilySelected &&
       crossedBeforeFinal < 5
@@ -201,8 +255,6 @@ function updateNumberAndLockState() {
       getFurthestPosition(row, "crossed");
 
 
-    /* Reset row and lock appearance */
-
     row.classList.toggle(
       "locked-row",
       finalIsConfirmed
@@ -215,8 +267,6 @@ function updateNumberAndLockState() {
     lockButton.disabled = true;
 
 
-    /* Show the lock state */
-
     if (finalIsConfirmed) {
       lockButton.classList.add("confirmed-lock");
     } else if (finalIsPending) {
@@ -225,8 +275,6 @@ function updateNumberAndLockState() {
       lockButton.classList.add("unavailable-lock");
     }
 
-
-    /* Update every number in this row */
 
     rowButtons.forEach(function (button, position) {
       const isCrossed =
@@ -243,19 +291,11 @@ function updateNumberAndLockState() {
       button.classList.remove("final-restricted");
 
 
-      /*
-        Crossed numbers remain visible.
-      */
-
       if (isCrossed) {
         button.disabled = isConfirmed;
         return;
       }
 
-
-      /*
-        A locked row cannot accept any more numbers.
-      */
 
       if (finalIsConfirmed) {
         button.classList.add("unavailable");
@@ -264,10 +304,6 @@ function updateNumberAndLockState() {
       }
 
 
-      /*
-        Numbers skipped by permanent selections.
-      */
-
       if (position <= furthestConfirmedPosition) {
         button.classList.add("unavailable");
         button.disabled = true;
@@ -275,20 +311,12 @@ function updateNumberAndLockState() {
       }
 
 
-      /*
-        Numbers skipped only by temporary selections.
-      */
-
       if (position <= furthestSelectedPosition) {
         button.classList.add("preview-unavailable");
         button.disabled = true;
         return;
       }
 
-
-      /*
-        The final number requires five earlier crosses.
-      */
 
       if (
         isFinalNumber &&
@@ -340,12 +368,110 @@ function updatePenaltyState() {
 
 
 /* =========================================
+   SCORE CALCULATION
+   ========================================= */
+
+function calculatePoints(crossCount) {
+  /*
+    This creates the standard scoring sequence:
+    1, 3, 6, 10, 15, 21, and so forth.
+  */
+
+  return crossCount * (crossCount + 1) / 2;
+}
+
+
+function updateScores() {
+  let totalScore = 0;
+  let hasTemporaryScore = false;
+
+
+  scoreRows.forEach(function (row) {
+    const rowButtons = getRowButtons(row);
+    const finalButton = getFinalNumberButton(row);
+
+    const numberCrosses =
+      rowButtons.filter(function (button) {
+        return button.classList.contains("crossed");
+      }).length;
+
+    const hasLockCross =
+      finalButton.classList.contains("crossed");
+
+    const totalRowCrosses =
+      numberCrosses + (hasLockCross ? 1 : 0);
+
+    const rowPoints =
+      calculatePoints(totalRowCrosses);
+
+    const rowHasTemporarySelection =
+      rowButtons.some(function (button) {
+        return pendingSelections.includes(button);
+      });
+
+    const scoreElement =
+      rowScoreElements.get(row);
+
+    scoreElement.textContent = rowPoints;
+
+    scoreElement.classList.toggle(
+      "preview-score",
+      rowHasTemporarySelection
+    );
+
+    if (rowHasTemporarySelection) {
+      hasTemporaryScore = true;
+    }
+
+    totalScore += rowPoints;
+  });
+
+
+  const confirmedPenaltyCount =
+    penaltyButtons.filter(function (button) {
+      return button.classList.contains(
+        "confirmed-penalty"
+      );
+    }).length;
+
+  const displayedPenaltyCount =
+    confirmedPenaltyCount +
+    (pendingPenalty !== null ? 1 : 0);
+
+  const penaltyPoints =
+    displayedPenaltyCount * -5;
+
+  penaltyScoreElement.textContent =
+    penaltyPoints;
+
+  penaltyScoreElement.classList.toggle(
+    "preview-score",
+    pendingPenalty !== null
+  );
+
+  if (pendingPenalty !== null) {
+    hasTemporaryScore = true;
+  }
+
+  totalScore += penaltyPoints;
+
+  totalScoreElement.textContent = totalScore;
+
+  totalScoreElement.classList.toggle(
+    "preview-score",
+    hasTemporaryScore
+  );
+}
+
+
+/* =========================================
    COMPLETE INTERFACE UPDATE
    ========================================= */
 
 function updateGameState() {
   updateNumberAndLockState();
   updatePenaltyState();
+  updateScores();
 
   const hasPendingChoice =
     pendingSelections.length > 0 ||
@@ -364,9 +490,6 @@ function selectNumber(button) {
     return;
   }
 
-  /*
-    Tap a temporary selection again to remove it.
-  */
 
   if (pendingSelections.includes(button)) {
     button.classList.remove("crossed");
@@ -382,9 +505,11 @@ function selectNumber(button) {
     return;
   }
 
+
   if (pendingPenalty !== null) {
     return;
   }
+
 
   if (
     button.classList.contains("unavailable") ||
@@ -394,9 +519,11 @@ function selectNumber(button) {
     return;
   }
 
+
   if (pendingSelections.length >= 2) {
     return;
   }
+
 
   button.classList.add("crossed");
   button.setAttribute("aria-pressed", "true");
@@ -422,17 +549,21 @@ function selectPenalty(button) {
     return;
   }
 
+
   if (pendingSelections.length > 0) {
     return;
   }
+
 
   if (button.classList.contains("confirmed-penalty")) {
     return;
   }
 
+
   if (button !== getNextPenaltyButton()) {
     return;
   }
+
 
   pendingPenalty = button;
 
@@ -512,6 +643,7 @@ function confirmSelections() {
 
   pendingSelections = [];
 
+
   if (pendingPenalty !== null) {
     pendingPenalty.classList.remove("pending-penalty");
     pendingPenalty.classList.add("confirmed-penalty");
@@ -519,6 +651,7 @@ function confirmSelections() {
 
     pendingPenalty = null;
   }
+
 
   closeLockPanel();
   updateGameState();
@@ -537,12 +670,14 @@ function clearPendingChoices() {
 
   pendingSelections = [];
 
+
   if (pendingPenalty !== null) {
     pendingPenalty.classList.remove("pending-penalty");
     pendingPenalty.setAttribute("aria-pressed", "false");
 
     pendingPenalty = null;
   }
+
 
   closeLockPanel();
   updateGameState();
@@ -565,6 +700,7 @@ function clearEntireScoreSheet() {
     button.disabled = false;
   });
 
+
   penaltyButtons.forEach(function (button) {
     button.classList.remove("pending-penalty");
     button.classList.remove("confirmed-penalty");
@@ -573,15 +709,18 @@ function clearEntireScoreSheet() {
     button.disabled = false;
   });
 
+
   lockButtons.forEach(function (button) {
     button.classList.remove("pending-lock");
     button.classList.remove("confirmed-lock");
     button.classList.remove("unavailable-lock");
   });
 
+
   scoreRows.forEach(function (row) {
     row.classList.remove("locked-row");
   });
+
 
   pendingSelections = [];
   pendingPenalty = null;
@@ -692,6 +831,9 @@ window.addEventListener("resize", function () {
 });
 
 
-/* Establish the initial interface state */
+/* =========================================
+   INITIAL SETUP
+   ========================================= */
 
+createScoreDisplays();
 updateGameState();
