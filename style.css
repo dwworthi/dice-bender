@@ -1979,3 +1979,17 @@ button:active {
     height: 7px;
   }
 }
+/* =========================================
+   LARGER GAME CONTROL TEXT
+   ========================================= */
+
+.gameControls button {
+  font-size: clamp(14px, 4vw, 17px);
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+#mainActionButton {
+  font-size: clamp(15px, 4.4vw, 19px);
+  letter-spacing: -0.3px;
+}
