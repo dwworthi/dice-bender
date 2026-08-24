@@ -3229,3 +3229,685 @@ physicalModeButton.addEventListener(
     pendingComputerWhiteChoice = null;
   }
 );
+/* =========================================
+   FINAL SCORE-SHEET VIEWER
+   ========================================= */
+
+/*
+  Record the exact numbers crossed by the
+  computer, not only its score and position.
+*/
+
+const viewerOriginalCreateSheet =
+  createFreshComputerSheet;
+
+createFreshComputerSheet = function () {
+  const sheet =
+    viewerOriginalCreateSheet();
+
+  computerRowOrder.forEach(function (color) {
+    sheet.rows[color].crossedNumbers = [];
+  });
+
+  return sheet;
+};
+
+
+const viewerOriginalCopySheet =
+  copyComputerSheet;
+
+copyComputerSheet = function (sheet) {
+  const copy =
+    viewerOriginalCopySheet(sheet);
+
+  computerRowOrder.forEach(function (color) {
+    copy.rows[color].crossedNumbers =
+      Array.isArray(
+        sheet.rows[color].crossedNumbers
+      )
+        ? [...sheet.rows[color].crossedNumbers]
+        : [];
+  });
+
+  return copy;
+};
+
+
+const viewerOriginalApplyCross =
+  applyComputerCrossToSheet;
+
+applyComputerCrossToSheet = function (
+  sheet,
+  color,
+  number
+) {
+  const crossWasAdded =
+    viewerOriginalApplyCross(
+      sheet,
+      color,
+      number
+    );
+
+  if (!crossWasAdded) {
+    return false;
+  }
+
+  if (
+    !Array.isArray(
+      sheet.rows[color].crossedNumbers
+    )
+  ) {
+    sheet.rows[color].crossedNumbers = [];
+  }
+
+  sheet.rows[color].crossedNumbers.push(
+    number
+  );
+
+  return true;
+};
+
+
+/* VIEW SCORE SHEETS BUTTON */
+
+const viewScoreSheetsButton =
+  document.createElement("button");
+
+viewScoreSheetsButton.id =
+  "viewScoreSheetsButton";
+
+viewScoreSheetsButton.type = "button";
+
+viewScoreSheetsButton.textContent =
+  "View Score Sheets";
+
+viewScoreSheetsButton.style.display =
+  "none";
+
+const finalResultsActions =
+  document.querySelector(".resultsActions");
+
+finalResultsActions.insertAdjacentElement(
+  "beforebegin",
+  viewScoreSheetsButton
+);
+
+
+/* FULL-SCREEN VIEWER */
+
+const scoreSheetViewerOverlay =
+  document.createElement("div");
+
+scoreSheetViewerOverlay.id =
+  "scoreSheetViewerOverlay";
+
+scoreSheetViewerOverlay.setAttribute(
+  "aria-hidden",
+  "true"
+);
+
+scoreSheetViewerOverlay.innerHTML = `
+  <section
+    class="scoreSheetViewerCard"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="scoreSheetViewerTitle"
+  >
+    <div class="scoreSheetViewerHeader">
+      <div>
+        <small>GAME COMPLETE</small>
+
+        <h2 id="scoreSheetViewerTitle">
+          Score Sheets
+        </h2>
+      </div>
+
+      <button
+        id="closeScoreSheetViewerButton"
+        type="button"
+      >
+        Back
+      </button>
+    </div>
+
+    <div class="scoreSheetTabs">
+      <button
+        id="viewHumanSheetButton"
+        class="active"
+        type="button"
+      >
+        Your Sheet
+      </button>
+
+      <button
+        id="viewComputerSheetButton"
+        type="button"
+      >
+        Computer Sheet
+      </button>
+    </div>
+
+    <div id="finalScoreSheetContainer"></div>
+  </section>
+`;
+
+document.body.appendChild(
+  scoreSheetViewerOverlay
+);
+
+const closeScoreSheetViewerButton =
+  document.getElementById(
+    "closeScoreSheetViewerButton"
+  );
+
+const viewHumanSheetButton =
+  document.getElementById(
+    "viewHumanSheetButton"
+  );
+
+const viewComputerSheetButton =
+  document.getElementById(
+    "viewComputerSheetButton"
+  );
+
+const finalScoreSheetContainer =
+  document.getElementById(
+    "finalScoreSheetContainer"
+  );
+
+
+/* VIEWER STYLING */
+
+const scoreSheetViewerStyles =
+  document.createElement("style");
+
+scoreSheetViewerStyles.textContent = `
+  #viewScoreSheetsButton {
+    width: 100%;
+    min-height: 43px;
+    margin: 9px 0 4px;
+    padding: 8px 12px;
+
+    color: #ffffff;
+    border: 1px solid rgba(220, 194, 255, 0.42);
+    border-radius: 12px;
+
+    background:
+      linear-gradient(
+        135deg,
+        rgba(110, 69, 174, 0.96),
+        rgba(55, 37, 98, 0.96)
+      );
+
+    font: inherit;
+    font-size: 13px;
+    font-weight: 900;
+  }
+
+  #viewScoreSheetsButton:active {
+    transform: scale(0.98);
+  }
+
+  #scoreSheetViewerOverlay {
+    position: fixed;
+    z-index: 5000;
+    inset: 0;
+
+    display: none;
+    align-items: center;
+    justify-content: center;
+
+    padding:
+      max(8px, env(safe-area-inset-top))
+      max(8px, env(safe-area-inset-right))
+      max(8px, env(safe-area-inset-bottom))
+      max(8px, env(safe-area-inset-left));
+
+    background: rgba(4, 10, 18, 0.94);
+  }
+
+  #scoreSheetViewerOverlay.open {
+    display: flex;
+  }
+
+  .scoreSheetViewerCard {
+    width: 100%;
+    max-width: 700px;
+    max-height: 96dvh;
+    overflow-y: auto;
+
+    padding: 10px;
+
+    border: 1px solid rgba(220, 194, 255, 0.34);
+    border-radius: 17px;
+
+    background:
+      linear-gradient(
+        160deg,
+        #152a3e,
+        #091522
+      );
+
+    box-shadow:
+      0 18px 45px rgba(0, 0, 0, 0.55);
+  }
+
+  .scoreSheetViewerHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-bottom: 8px;
+  }
+
+  .scoreSheetViewerHeader small {
+    color: #aab7c5;
+    font-size: 8px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+  }
+
+  .scoreSheetViewerHeader h2 {
+    margin: 1px 0 0;
+    color: #ffffff;
+    font-size: 18px;
+  }
+
+  #closeScoreSheetViewerButton {
+    min-width: 68px;
+    min-height: 36px;
+
+    color: #ffffff;
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 10px;
+    background: rgba(255,255,255,0.08);
+
+    font: inherit;
+    font-size: 11px;
+    font-weight: 850;
+  }
+
+  .scoreSheetTabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+
+    margin-bottom: 8px;
+    padding: 4px;
+
+    border-radius: 12px;
+    background: rgba(0,0,0,0.2);
+  }
+
+  .scoreSheetTabs button {
+    min-height: 37px;
+
+    color: #aab7c5;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+
+    font: inherit;
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  .scoreSheetTabs button.active {
+    color: #ffffff;
+
+    background:
+      linear-gradient(
+        135deg,
+        rgba(110,69,174,0.96),
+        rgba(55,37,98,0.96)
+      );
+  }
+
+  #finalScoreSheetContainer .scoreCard {
+    width: 100%;
+    margin: 0;
+  }
+
+  #finalScoreSheetContainer button {
+    pointer-events: none;
+  }
+
+  @media (max-height: 700px) {
+    .scoreSheetViewerCard {
+      padding: 7px;
+    }
+
+    .scoreSheetViewerHeader {
+      margin-bottom: 5px;
+    }
+
+    .scoreSheetTabs {
+      margin-bottom: 5px;
+    }
+  }
+`;
+
+document.head.appendChild(
+  scoreSheetViewerStyles
+);
+
+
+/* PREPARE A NON-PLAYABLE SHEET COPY */
+
+function prepareFinalSheetClone() {
+  const clone =
+    document.querySelector(".scoreCard")
+      .cloneNode(true);
+
+  clone.querySelectorAll("[id]")
+    .forEach(function (element) {
+      element.removeAttribute("id");
+    });
+
+  clone.querySelectorAll("button")
+    .forEach(function (button) {
+      button.disabled = true;
+    });
+
+  return clone;
+}
+
+
+function displayFinalSheetClone(clone) {
+  finalScoreSheetContainer.innerHTML = "";
+
+  finalScoreSheetContainer.appendChild(
+    clone
+  );
+}
+
+
+/* DISPLAY THE PLAYER'S SHEET */
+
+function showFinalHumanSheet() {
+  const clone = prepareFinalSheetClone();
+
+  const headingRight =
+    clone.querySelector(
+      ".scoreHeading span:last-child"
+    );
+
+  headingRight.innerHTML =
+    `You · <strong>${totalScoreElement.textContent}</strong> pts`;
+
+  displayFinalSheetClone(clone);
+
+  viewHumanSheetButton.classList.add(
+    "active"
+  );
+
+  viewComputerSheetButton.classList.remove(
+    "active"
+  );
+}
+
+
+/* DISPLAY THE COMPUTER'S HIDDEN SHEET */
+
+function showFinalComputerSheet() {
+  const clone = prepareFinalSheetClone();
+
+  const clonedRows = Array.from(
+    clone.querySelectorAll(".scoreRow")
+  );
+
+  clonedRows.forEach(function (
+    row,
+    index
+  ) {
+    const color =
+      computerRowOrder[index];
+
+    const computerRow =
+      computerSheet.rows[color];
+
+    const crossedNumbers =
+      Array.isArray(
+        computerRow.crossedNumbers
+      )
+        ? computerRow.crossedNumbers
+        : [];
+
+    const buttons = Array.from(
+      row.querySelectorAll(
+        ".numberTrack button"
+      )
+    );
+
+    buttons.forEach(function (button) {
+      button.classList.remove(
+        "crossed",
+        "confirmed",
+        "unavailable",
+        "preview-unavailable",
+        "final-restricted"
+      );
+
+      const number =
+        Number(button.textContent.trim());
+
+      if (crossedNumbers.includes(number)) {
+        button.classList.add(
+          "crossed",
+          "confirmed"
+        );
+      } else if (
+        colorIsLockedForEveryone(color)
+      ) {
+        button.classList.add(
+          "unavailable"
+        );
+      }
+    });
+
+    const lockButton =
+      row.querySelector(".lockBox");
+
+    lockButton.classList.remove(
+      "pending-lock",
+      "confirmed-lock",
+      "unavailable-lock"
+    );
+
+    if (computerRow.locked) {
+      row.classList.add("locked-row");
+
+      lockButton.classList.add(
+        "confirmed-lock"
+      );
+    } else {
+      row.classList.remove("locked-row");
+
+      lockButton.classList.add(
+        "unavailable-lock"
+      );
+    }
+
+    const scoringCrosses =
+      computerRow.crossCount +
+      (computerRow.locked ? 1 : 0);
+
+    const rowScore =
+      row.querySelector(".rowScore");
+
+    if (rowScore) {
+      rowScore.textContent =
+        calculatePoints(scoringCrosses);
+
+      rowScore.classList.remove(
+        "preview-score"
+      );
+    }
+  });
+
+  const clonedPenaltyButtons =
+    Array.from(
+      clone.querySelectorAll(
+        ".penaltyBoxes button"
+      )
+    );
+
+  clonedPenaltyButtons.forEach(
+    function (button, index) {
+      button.classList.remove(
+        "pending-penalty",
+        "confirmed-penalty"
+      );
+
+      if (
+        index < computerSheet.penalties
+      ) {
+        button.classList.add(
+          "confirmed-penalty"
+        );
+      }
+    }
+  );
+
+  const clonedPenaltyValue =
+    clone.querySelector(
+      ".penaltyValue strong"
+    );
+
+  if (clonedPenaltyValue) {
+    clonedPenaltyValue.textContent =
+      computerSheet.penalties * -5;
+  }
+
+  const computerTotal =
+    scoreComputerSheet(computerSheet);
+
+  const headingRight =
+    clone.querySelector(
+      ".scoreHeading span:last-child"
+    );
+
+  headingRight.innerHTML =
+    `Computer · <strong>${computerTotal}</strong> pts`;
+
+  displayFinalSheetClone(clone);
+
+  viewComputerSheetButton.classList.add(
+    "active"
+  );
+
+  viewHumanSheetButton.classList.remove(
+    "active"
+  );
+}
+
+
+/* OPEN AND CLOSE THE VIEWER */
+
+function openFinalScoreSheetViewer() {
+  if (!isComputerGame() || !gameIsOver) {
+    return;
+  }
+
+  resultsOverlay.classList.remove("open");
+
+  resultsOverlay.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+
+  showFinalHumanSheet();
+
+  scoreSheetViewerOverlay.classList.add(
+    "open"
+  );
+
+  scoreSheetViewerOverlay.setAttribute(
+    "aria-hidden",
+    "false"
+  );
+}
+
+
+function closeFinalScoreSheetViewer() {
+  scoreSheetViewerOverlay.classList.remove(
+    "open"
+  );
+
+  scoreSheetViewerOverlay.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+
+  if (gameIsOver) {
+    resultsOverlay.classList.add("open");
+
+    resultsOverlay.setAttribute(
+      "aria-hidden",
+      "false"
+    );
+  }
+}
+
+
+/* BUTTON ACTIONS */
+
+viewScoreSheetsButton.addEventListener(
+  "click",
+  openFinalScoreSheetViewer
+);
+
+closeScoreSheetViewerButton.addEventListener(
+  "click",
+  closeFinalScoreSheetViewer
+);
+
+viewHumanSheetButton.addEventListener(
+  "click",
+  showFinalHumanSheet
+);
+
+viewComputerSheetButton.addEventListener(
+  "click",
+  showFinalComputerSheet
+);
+
+
+/*
+  Show the viewer button only after a
+  computer game.
+*/
+
+const viewerOriginalOpenResults =
+  openResultsPanel;
+
+openResultsPanel = function (reason) {
+  viewerOriginalOpenResults(reason);
+
+  viewScoreSheetsButton.style.display =
+    isComputerGame()
+      ? "block"
+      : "none";
+};
+
+
+/*
+  Close the viewer when a new game begins or
+  the player returns to the menu.
+*/
+
+const viewerOriginalCloseResults =
+  closeResultsPanel;
+
+closeResultsPanel = function () {
+  scoreSheetViewerOverlay.classList.remove(
+    "open"
+  );
+
+  scoreSheetViewerOverlay.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+
+  viewerOriginalCloseResults();
+};
