@@ -2373,13 +2373,39 @@ skipComputerWhiteButton.addEventListener(
   "click",
   function () {
     if (
-      isComputerGame() &&
-      computerTurnPhase === "computer" &&
-      diceHaveBeenRolled &&
-      !diceAreRolling
+      !isComputerGame() ||
+      computerTurnPhase !== "computer" ||
+      !diceHaveBeenRolled ||
+      diceAreRolling
     ) {
-      finishComputerResponse();
+      return;
     }
+
+    lockCard.classList.remove(
+      "ending-warning"
+    );
+
+    lockTitle.textContent =
+      "Skip white dice?";
+
+    lockMessage.textContent =
+      "You will not use this white dice roll.";
+
+    cancelLockButton.textContent =
+      "Keep Choosing";
+
+    confirmLockButton.textContent =
+      "Skip Roll";
+
+    lockOverlay.classList.add("open");
+
+    lockOverlay.setAttribute(
+      "aria-hidden",
+      "false"
+    );
+
+    positionLockPanel();
+    confirmLockButton.focus();
   }
 );
 
