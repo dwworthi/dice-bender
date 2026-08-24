@@ -2085,3 +2085,109 @@ button:active {
     width: 52px;
   }
 }
+/* =========================================
+   COMPUTER OPPONENT STATUS
+   ========================================= */
+
+.computerStatusPanel {
+  display: none;
+  width: 100%;
+  max-width: 680px;
+  min-height: 39px;
+  flex: 0 0 39px;
+  grid-template-columns: 1fr 1.35fr 1fr;
+  align-items: center;
+  gap: 5px;
+
+  margin: 0 auto;
+  padding: 4px 7px;
+
+  border: 1px solid rgba(185, 137, 255, 0.31);
+  border-radius: 12px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(92, 57, 145, 0.32),
+      rgba(26, 34, 51, 0.88)
+    );
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+#gameScreen.computer-game
+.computerStatusPanel {
+  display: grid;
+}
+
+.computerPlayer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  color: #b7c5d1;
+
+  font-size: 9px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.computerPlayer strong {
+  display: grid;
+  min-width: 25px;
+  height: 25px;
+  padding: 0 4px;
+
+  place-items: center;
+
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+
+  font-size: 12px;
+}
+
+.cpuPlayer {
+  justify-content: flex-end;
+}
+
+.computerTurnStatus {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  flex-direction: column;
+  gap: 1px;
+
+  text-align: center;
+}
+
+.computerTurnStatus strong {
+  color: #dcc2ff;
+
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.computerTurnStatus small {
+  overflow: hidden;
+  max-width: 100%;
+
+  color: #9eacba;
+
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-height: 700px) {
+  .computerStatusPanel {
+    min-height: 35px;
+    flex-basis: 35px;
+  }
+
+  .computerPlayer strong {
+    height: 22px;
+  }
+}
