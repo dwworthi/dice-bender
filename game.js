@@ -1687,3 +1687,69 @@ window.addEventListener("resize", function () {
 /* INITIAL GAME STATE */
 
 updateGameState();
+/* =========================================
+   COMPUTER OPPONENT STATUS PANEL
+   ========================================= */
+
+function createComputerStatusPanel() {
+  const computerPanel =
+    document.createElement("section");
+
+  computerPanel.id = "computerStatusPanel";
+  computerPanel.className = "computerStatusPanel";
+
+  computerPanel.innerHTML = `
+    <div class="computerPlayer humanPlayer">
+      <span>You</span>
+      <strong id="computerModeHumanScore">0</strong>
+    </div>
+
+    <div class="computerTurnStatus">
+      <strong id="computerTurnLabel">Your Turn</strong>
+      <small id="computerTurnInstruction">Roll the dice</small>
+    </div>
+
+    <div class="computerPlayer cpuPlayer">
+      <span>Computer</span>
+      <strong id="computerScore">0</strong>
+    </div>
+  `;
+
+
+  const scoreCard =
+    document.querySelector(".scoreCard");
+
+  scoreCard.insertAdjacentElement(
+    "beforebegin",
+    computerPanel
+  );
+
+
+  /*
+    Keep the panel's human score synchronized with
+    the score already calculated by the game.
+  */
+
+  const computerModeHumanScore =
+    document.getElementById(
+      "computerModeHumanScore"
+    );
+
+  const humanScoreObserver =
+    new MutationObserver(function () {
+      computerModeHumanScore.textContent =
+        totalScoreElement.textContent;
+    });
+
+  humanScoreObserver.observe(
+    totalScoreElement,
+    {
+      childList: true,
+      characterData: true,
+      subtree: true
+    }
+  );
+}
+
+
+createComputerStatusPanel();
