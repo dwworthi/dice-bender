@@ -4301,3 +4301,770 @@ computerLockWarningStyles.textContent = `
 document.head.appendChild(
   computerLockWarningStyles
 );
+/* =========================================
+   COMPUTER DIFFICULTY LEVELS
+   ========================================= */
+
+let currentComputerDifficulty = "balanced";
+
+
+const computerDifficultySettings = {
+  novice: {
+    gapPenalty: 0.18,
+    earlyFinishPenalty: 0.5,
+    lockBonus: 3,
+    opponentPressure: 0,
+    randomAmount: 2.8,
+    whiteSkipChance: 0.18
+  },
+
+  balanced: {
+    gapPenalty: 1.05,
+    earlyFinishPenalty: 3.5,
+    lockBonus: 9,
+    opponentPressure: 1.2,
+    randomAmount: 0.35,
+    whiteSkipChance: 0
+  },
+
+  master: {
+    gapPenalty: 1.65,
+    earlyFinishPenalty: 6,
+    lockBonus: 14,
+    opponentPressure: 2.4,
+    randomAmount: 0.04,
+    whiteSkipChance: 0
+  }
+};
+
+
+/* =========================================
+   DIFFICULTY CHOOSER
+   ========================================= */
+
+const difficultyOverlay =
+  document.createElement("div");
+
+difficultyOverlay.id =
+  "difficultyOverlay";
+
+difficultyOverlay.setAttribute(
+  "aria-hidden",
+  "true"
+);
+
+difficultyOverlay.innerHTML = `
+  <section
+    class="difficultyCard"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="difficultyTitle"
+  >
+    <div
+      class="difficultyElements"
+      aria-hidden="true"
+    >
+      <span>🔥</span>
+      <span>💨</span>
+      <span>◆</span>
+      <span>💧</span>
+    </div>
+
+    <p class="difficultyEyebrow">
+      COMPUTER OPPONENT
+    </p>
+
+    <h2 id="difficultyTitle">
+      Choose Your Opponent
+    </h2>
+
+    <p class="difficultyExplanation">
+      You can change the difficulty by starting
+      another computer game.
+    </p>
+
+    <div class="difficultyChoices">
+      <button
+        class="difficultyChoice noviceChoice"
+        data-difficulty="novice"
+        type="button"
+      >
+        <span class="difficultyIcon">🌱</span>
+
+        <span>
+          <strong>Novice</strong>
+
+          <small>
+            Relaxed choices and occasional mistakes
+          </small>
+        </span>
+      </button>
+
+      <button
+        class="difficultyChoice balancedChoice recommended"
+        data-difficulty="balanced"
+        type="button"
+      >
+        <span class="recommendedLabel">
+          RECOMMENDED
+        </span>
+
+        <span class="difficultyIcon">⚔</span>
+
+        <span>
+          <strong>Balanced</strong>
+
+          <small>
+            Careful strategy without perfect play
+          </small>
+        </span>
+      </button>
+
+      <button
+        class="difficultyChoice masterChoice"
+        data-difficulty="master"
+        type="button"
+      >
+        <span class="difficultyIcon">👑</span>
+
+        <span>
+          <strong>Master</strong>
+
+          <small>
+            Plans ahead and pressures your rows
+          </small>
+        </span>
+      </button>
+    </div>
+
+    <button
+      id="cancelDifficultyButton"
+      type="button"
+    >
+      Back
+    </button>
+  </section>
+`;
+
+document.body.appendChild(
+  difficultyOverlay
+);
+
+const difficultyChoiceButtons =
+  Array.from(
+    document.querySelectorAll(
+      ".difficultyChoice"
+    )
+  );
+
+const cancelDifficultyButton =
+  document.getElementById(
+    "cancelDifficultyButton"
+  );
+
+
+/* =========================================
+   DIFFICULTY CHOOSER STYLES
+   ========================================= */
+
+const difficultyStyles =
+  document.createElement("style");
+
+difficultyStyles.textContent = `
+  #difficultyOverlay {
+    position: fixed;
+    z-index: 7000;
+    inset: 0;
+
+    display: none;
+    align-items: center;
+    justify-content: center;
+
+    padding:
+      max(12px, env(safe-area-inset-top))
+      max(12px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom))
+      max(12px, env(safe-area-inset-left));
+
+    background: rgba(4, 10, 18, 0.92);
+  }
+
+  #difficultyOverlay.open {
+    display: flex;
+  }
+
+  .difficultyCard {
+    width: 100%;
+    max-width: 430px;
+    padding: 17px;
+
+    border: 1px solid rgba(205, 175, 255, 0.37);
+    border-radius: 20px;
+
+    background:
+      linear-gradient(
+        160deg,
+        #172c42,
+        #0a1624
+      );
+
+    box-shadow:
+      0 22px 55px rgba(0, 0, 0, 0.62),
+      inset 0 1px 0 rgba(255,255,255,0.08);
+
+    text-align: center;
+  }
+
+  .difficultyElements {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+
+    margin-bottom: 7px;
+    font-size: 14px;
+  }
+
+  .difficultyEyebrow {
+    margin: 0 0 2px;
+
+    color: #b9a0dc;
+    font-size: 8px;
+    font-weight: 950;
+    letter-spacing: 1.8px;
+  }
+
+  .difficultyCard h2 {
+    margin: 0;
+
+    color: #ffffff;
+    font-size: 22px;
+  }
+
+  .difficultyExplanation {
+    margin: 5px 0 13px;
+
+    color: #aebbc7;
+    font-size: 10px;
+  }
+
+  .difficultyChoices {
+    display: grid;
+    gap: 8px;
+  }
+
+  .difficultyChoice {
+    position: relative;
+
+    display: grid;
+    grid-template-columns: 42px 1fr;
+    align-items: center;
+    gap: 9px;
+
+    width: 100%;
+    min-height: 65px;
+    padding: 8px 12px;
+
+    color: #ffffff;
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 14px;
+
+    background:
+      linear-gradient(
+        135deg,
+        rgba(255,255,255,0.09),
+        rgba(255,255,255,0.035)
+      );
+
+    text-align: left;
+  }
+
+  .difficultyChoice:active {
+    transform: scale(0.985);
+  }
+
+  .difficultyChoice.recommended {
+    border-color: rgba(190, 145, 255, 0.68);
+
+    background:
+      linear-gradient(
+        135deg,
+        rgba(112, 69, 175, 0.74),
+        rgba(57, 38, 101, 0.86)
+      );
+  }
+
+  .difficultyIcon {
+    display: grid;
+    width: 39px;
+    height: 39px;
+
+    place-items: center;
+
+    border-radius: 11px;
+    background: rgba(255,255,255,0.1);
+
+    font-size: 20px;
+  }
+
+  .difficultyChoice strong {
+    display: block;
+
+    margin-bottom: 2px;
+    font-size: 14px;
+  }
+
+  .difficultyChoice small {
+    display: block;
+
+    color: #afbdca;
+    font-size: 9px;
+    line-height: 1.3;
+  }
+
+  .difficultyChoice.recommended small {
+    color: #e0d4ef;
+  }
+
+  .recommendedLabel {
+    position: absolute;
+    top: 4px;
+    right: 7px;
+
+    color: #eadbff;
+    font-size: 6px;
+    font-weight: 950;
+    letter-spacing: 0.8px;
+  }
+
+  #cancelDifficultyButton {
+    width: 100%;
+    min-height: 40px;
+    margin-top: 11px;
+
+    color: #bac6d1;
+    border: 1px solid rgba(255,255,255,0.13);
+    border-radius: 11px;
+    background: rgba(255,255,255,0.05);
+
+    font: inherit;
+    font-size: 11px;
+    font-weight: 850;
+  }
+
+  @media (max-height: 700px) {
+    .difficultyCard {
+      padding: 12px;
+    }
+
+    .difficultyChoice {
+      min-height: 56px;
+    }
+
+    .difficultyExplanation {
+      margin-bottom: 8px;
+    }
+  }
+`;
+
+document.head.appendChild(
+  difficultyStyles
+);
+
+
+/* =========================================
+   OPEN AND CLOSE DIFFICULTY CHOOSER
+   ========================================= */
+
+function openDifficultyChooser() {
+  difficultyOverlay.classList.add("open");
+
+  difficultyOverlay.setAttribute(
+    "aria-hidden",
+    "false"
+  );
+
+  const balancedButton =
+    document.querySelector(
+      '.difficultyChoice[data-difficulty="balanced"]'
+    );
+
+  balancedButton.focus();
+}
+
+
+function closeDifficultyChooser() {
+  difficultyOverlay.classList.remove("open");
+
+  difficultyOverlay.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+}
+
+
+/*
+  The earlier Play vs Computer button action
+  would immediately enter a game.
+
+  This capture listener runs first and opens
+  the difficulty chooser instead.
+*/
+
+computerModeButton.addEventListener(
+  "click",
+  function (event) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    openDifficultyChooser();
+  },
+  true
+);
+
+
+cancelDifficultyButton.addEventListener(
+  "click",
+  closeDifficultyChooser
+);
+
+
+difficultyOverlay.addEventListener(
+  "click",
+  function (event) {
+    if (event.target === difficultyOverlay) {
+      closeDifficultyChooser();
+    }
+  }
+);
+
+
+/* =========================================
+   START SELECTED COMPUTER GAME
+   ========================================= */
+
+function startSelectedComputerGame(
+  difficulty
+) {
+  currentComputerDifficulty = difficulty;
+
+  closeDifficultyChooser();
+
+  resetComputerSheet();
+
+  showGameScreen("virtual");
+
+  gameScreen.classList.add(
+    "computer-game"
+  );
+
+  const difficultyName =
+    difficulty.charAt(0).toUpperCase() +
+    difficulty.slice(1);
+
+  modeLabel.textContent =
+    `You vs ${difficultyName} Computer`;
+
+  const panel =
+    document.getElementById(
+      "computerStatusPanel"
+    );
+
+  if (panel) {
+    panel.innerHTML = `
+      <div class="computerTurnStatus privateTurnStatus">
+        <strong id="computerTurnLabel">
+          Your Turn
+        </strong>
+
+        <small id="computerTurnInstruction">
+          ${difficultyName} opponent
+        </small>
+      </div>
+    `;
+  }
+
+  beginHumanTurn();
+  updateGameState();
+}
+
+
+difficultyChoiceButtons.forEach(
+  function (button) {
+    button.addEventListener(
+      "click",
+      function () {
+        startSelectedComputerGame(
+          button.dataset.difficulty
+        );
+      }
+    );
+  }
+);
+
+
+/* =========================================
+   DIFFICULTY-BASED COMPUTER STRATEGY
+   ========================================= */
+
+function getHumanPressureForColor(color) {
+  const humanRow = getHumanRow(color);
+
+  const confirmedCrosses =
+    getRowButtons(humanRow)
+      .filter(function (button) {
+        return button.classList.contains(
+          "confirmed"
+        );
+      })
+      .length;
+
+  const furthestPosition =
+    getFurthestPosition(
+      humanRow,
+      "confirmed"
+    );
+
+  return {
+    confirmedCrosses: confirmedCrosses,
+    furthestPosition: furthestPosition
+  };
+}
+
+
+function getFutureRowFlexibility(
+  sheet,
+  color
+) {
+  const row = sheet.rows[color];
+
+  if (
+    row.locked ||
+    colorIsLockedForEveryone(color)
+  ) {
+    return 0;
+  }
+
+  const remainingSpaces =
+    10 - row.furthestPosition;
+
+  const usefulSpaceBonus =
+    Math.max(0, remainingSpaces) * 0.12;
+
+  const builtRowBonus =
+    row.crossCount * 0.2;
+
+  return usefulSpaceBonus + builtRowBonus;
+}
+
+
+function calculateDifficultyChoiceValue(
+  sheetBefore,
+  sheetAfter,
+  choices
+) {
+  const settings =
+    computerDifficultySettings[
+      currentComputerDifficulty
+    ];
+
+  let value =
+    scoreComputerSheet(sheetAfter) -
+    scoreComputerSheet(sheetBefore);
+
+  choices.forEach(function (choice) {
+    const beforeRow =
+      sheetBefore.rows[choice.color];
+
+    const afterRow =
+      sheetAfter.rows[choice.color];
+
+    const newPosition =
+      computerRowNumbers[choice.color]
+        .indexOf(choice.number);
+
+    const skippedSpaces =
+      newPosition -
+      beforeRow.furthestPosition -
+      1;
+
+    value -=
+      skippedSpaces *
+      settings.gapPenalty;
+
+    if (
+      newPosition >= 8 &&
+      beforeRow.crossCount < 4
+    ) {
+      value -=
+        settings.earlyFinishPenalty;
+    }
+
+    if (
+      !beforeRow.locked &&
+      afterRow.locked
+    ) {
+      value += settings.lockBonus;
+    }
+
+    const humanPressure =
+      getHumanPressureForColor(
+        choice.color
+      );
+
+    if (
+      humanPressure.confirmedCrosses >= 5 ||
+      humanPressure.furthestPosition >= 8
+    ) {
+      value +=
+        settings.opponentPressure;
+    }
+  });
+
+  if (
+    currentComputerDifficulty === "master"
+  ) {
+    computerRowOrder.forEach(
+      function (color) {
+        value += getFutureRowFlexibility(
+          sheetAfter,
+          color
+        );
+      }
+    );
+
+    /*
+      Master prefers completing both legal
+      actions instead of wasting an opportunity.
+    */
+
+    if (choices.length === 2) {
+      value += 1.25;
+    }
+  }
+
+  value +=
+    Math.random() *
+    settings.randomAmount;
+
+  return value;
+}
+
+
+/*
+  Replace the original basic move rating with
+  the selected difficulty's strategy.
+*/
+
+computerChoiceValue = function (
+  sheetBefore,
+  sheetAfter,
+  choices
+) {
+  return calculateDifficultyChoiceValue(
+    sheetBefore,
+    sheetAfter,
+    choices
+  );
+};
+
+
+/*
+  Novice sometimes overlooks a legal white-dice
+  response. Balanced and Master do not.
+*/
+
+const difficultyOriginalWhiteResponse =
+  chooseComputerWhiteResponse;
+
+chooseComputerWhiteResponse = function (
+  whiteTotal
+) {
+  const settings =
+    computerDifficultySettings[
+      currentComputerDifficulty
+    ];
+
+  if (
+    currentComputerDifficulty === "novice" &&
+    Math.random() <
+      settings.whiteSkipChance
+  ) {
+    return null;
+  }
+
+  return difficultyOriginalWhiteResponse(
+    whiteTotal
+  );
+};
+
+
+/* =========================================
+   DISPLAY DIFFICULTY IN FINAL RESULTS
+   ========================================= */
+
+const difficultyOriginalOpenResults =
+  openResultsPanel;
+
+openResultsPanel = function (reason) {
+  difficultyOriginalOpenResults(reason);
+
+  if (!isComputerGame()) {
+    return;
+  }
+
+  const difficultyName =
+    currentComputerDifficulty
+      .charAt(0)
+      .toUpperCase() +
+    currentComputerDifficulty.slice(1);
+
+  let difficultyResultLabel =
+    document.getElementById(
+      "difficultyResultLabel"
+    );
+
+  if (!difficultyResultLabel) {
+    difficultyResultLabel =
+      document.createElement("p");
+
+    difficultyResultLabel.id =
+      "difficultyResultLabel";
+
+    difficultyResultLabel.style.margin =
+      "4px 0 0";
+
+    difficultyResultLabel.style.color =
+      "#b9a7d1";
+
+    difficultyResultLabel.style.fontSize =
+      "9px";
+
+    difficultyResultLabel.style.fontWeight =
+      "850";
+
+    resultsReason.insertAdjacentElement(
+      "afterend",
+      difficultyResultLabel
+    );
+  }
+
+  difficultyResultLabel.textContent =
+    `${difficultyName} Computer`;
+};
+
+
+/* ESCAPE KEY SUPPORT */
+
+document.addEventListener(
+  "keydown",
+  function (event) {
+    if (
+      event.key === "Escape" &&
+      difficultyOverlay.classList.contains(
+        "open"
+      )
+    ) {
+      closeDifficultyChooser();
+    }
+  }
+);
