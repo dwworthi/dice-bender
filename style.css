@@ -2212,3 +2212,31 @@ button:active {
 
   font-size: 25px;
 }
+/* =========================================
+   PRIVATE COMPUTER TURN DISPLAY
+   ========================================= */
+
+#gameScreen.computer-game
+.computerStatusPanel {
+  display: flex;
+  justify-content: center;
+  grid-template-columns: none;
+}
+
+.privateTurnStatus {
+  width: 100%;
+}
+
+.privateTurnStatus strong {
+  font-size: 12px;
+}
+
+.privateTurnStatus small {
+  font-size: 9px;
+}
+
+.trayDie.computer-waiting-die:not(.removed-die) {
+  opacity: 0.32;
+  filter: grayscale(1) brightness(0.75);
+  transform: scale(0.94);
+}

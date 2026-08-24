@@ -1768,3 +1768,441 @@ function createComputerStatusPanel() {
 
 
 createComputerStatusPanel();
+/* =========================================
+   COMPUTER TURN FLOW — PRIVATE OPPONENT
+   ========================================= */
+
+let computerTurnPhase = "human";
+let computerRollTimer = null;
+
+const originalRollVirtualDice = rollVirtualDice;
+const originalUpdateGameState = updateGameState;
+const originalConfirmSelections = confirmSelections;
+const originalClearEntireScoreSheet =
+  clearEntireScoreSheet;
+const originalShowStartScreen = showStartScreen;
+const originalVirtualSelectionsAreValid =
+  virtualSelectionsAreValid;
+const originalSelectPenalty = selectPenalty;
+const originalOpenLockPanel = openLockPanel;
+
+
+function isComputerGame() {
+  return gameScreen.classList.contains(
+    "computer-game"
+  );
+}
+
+
+function getComputerTurnLabel() {
+  return document.getElementById(
+    "computerTurnLabel"
+  );
+}
+
+
+function getComputerTurnInstruction() {
+  return document.getElementById(
+    "computerTurnInstruction"
+  );
+}
+
+
+function setComputerPanelText(
+  title,
+  instruction
+) {
+  const titleElement =
+    getComputerTurnLabel();
+
+  const instructionElement =
+    getComputerTurnInstruction();
+
+  if (titleElement) {
+    titleElement.textContent = title;
+  }
+
+  if (instructionElement) {
+    instructionElement.textContent =
+      instruction;
+  }
+}
+
+
+function setComputerDiceAppearance() {
+  trayDice.forEach(function (die, index) {
+    die.classList.toggle(
+      "computer-waiting-die",
+      isComputerGame() &&
+      computerTurnPhase === "computer" &&
+      index >= 2
+    );
+  });
+}
+
+
+function beginHumanTurn() {
+  computerTurnPhase = "human";
+  diceHaveBeenRolled = false;
+
+  setComputerPanelText(
+    "Your Turn",
+    "Roll all active dice"
+  );
+
+  setComputerDiceAppearance();
+  originalUpdateGameState();
+}
+
+
+async function beginComputerTurn() {
+  if (!isComputerGame() || gameIsOver) {
+    return;
+  }
+
+  computerTurnPhase = "computer";
+  diceHaveBeenRolled = false;
+
+  setComputerPanelText(
+    "Computer’s Turn",
+    "Watch the two white dice"
+  );
+
+  setComputerDiceAppearance();
+  originalUpdateGameState();
+
+  await rollVirtualDice();
+}
+
+
+/*
+  During a computer turn, only the two white
+  dice roll. The colored dice remain unchanged.
+*/
+
+rollVirtualDice = async function () {
+  if (
+    !isComputerGame() ||
+    computerTurnPhase === "human"
+  ) {
+    await originalRollVirtualDice();
+    return;
+  }
+
+  if (diceAreRolling) {
+    return;
+  }
+
+  diceAreRolling = true;
+  diceHaveBeenRolled = false;
+
+  setComputerPanelText(
+    "Computer’s Turn",
+    "Rolling the white dice…"
+  );
+
+  originalUpdateGameState();
+
+  const diceTray =
+    document.getElementById("diceTray");
+
+  diceTray.setAttribute(
+    "aria-busy",
+    "true"
+  );
+
+  await Promise.all([
+    animateTrayDieInPlace(trayDice[0], 0),
+    animateTrayDieInPlace(trayDice[1], 1)
+  ]);
+
+  diceTray.setAttribute(
+    "aria-busy",
+    "false"
+  );
+
+  diceAreRolling = false;
+  diceHaveBeenRolled = true;
+
+  setComputerPanelText(
+    "Computer’s Turn",
+    "Use the white dice or skip"
+  );
+
+  setComputerDiceAppearance();
+  originalUpdateGameState();
+};
+
+
+/*
+  On the computer's turn, the player may only
+  use the total of the two white dice once.
+*/
+
+virtualSelectionsAreValid =
+  function (selections) {
+    if (
+      isComputerGame() &&
+      computerTurnPhase === "computer"
+    ) {
+      return (
+        selections.length <= 1 &&
+        (
+          selections.length === 0 ||
+          matchesWhiteAction(selections[0])
+        )
+      );
+    }
+
+    return originalVirtualSelectionsAreValid(
+      selections
+    );
+  };
+
+
+/*
+  Penalties cannot be selected during the
+  computer's turn.
+*/
+
+selectPenalty = function (button) {
+  if (
+    isComputerGame() &&
+    computerTurnPhase === "computer"
+  ) {
+    return;
+  }
+
+  originalSelectPenalty(button);
+};
+
+
+updateGameState = function () {
+  originalUpdateGameState();
+  setComputerDiceAppearance();
+
+  if (!isComputerGame()) {
+    return;
+  }
+
+  if (
+    computerTurnPhase === "computer" &&
+    diceAreRolling
+  ) {
+    mainActionButton.textContent =
+      "Rolling…";
+
+    mainActionButton.disabled = true;
+    return;
+  }
+
+  if (
+    computerTurnPhase === "computer" &&
+    diceHaveBeenRolled
+  ) {
+    mainActionButton.textContent =
+      pendingSelections.length > 0
+        ? "Lock In Selection"
+        : "Skip White Dice";
+
+    mainActionButton.disabled =
+      gameIsOver;
+
+    return;
+  }
+
+  setComputerPanelText(
+    "Your Turn",
+    diceHaveBeenRolled
+      ? "Choose your moves"
+      : "Roll all active dice"
+  );
+};
+
+
+function finishComputerResponse() {
+  clearPendingChoices();
+
+  setComputerPanelText(
+    "Computer’s Turn",
+    "Finishing privately…"
+  );
+
+  mainActionButton.disabled = true;
+
+  window.clearTimeout(
+    computerRollTimer
+  );
+
+  computerRollTimer =
+    window.setTimeout(
+      function () {
+        beginHumanTurn();
+      },
+      650
+    );
+}
+
+
+/*
+  The Skip White Dice button advances without
+  opening the confirmation panel.
+*/
+
+openLockPanel = function () {
+  if (
+    isComputerGame() &&
+    computerTurnPhase === "computer" &&
+    pendingSelections.length === 0
+  ) {
+    finishComputerResponse();
+    return;
+  }
+
+  originalOpenLockPanel();
+};
+
+
+/*
+  After the human locks their normal turn,
+  the computer turn begins.
+
+  After the human responds to the computer's
+  white dice, play returns to the human.
+*/
+
+confirmSelections = function () {
+  const completedComputerResponse =
+    isComputerGame() &&
+    computerTurnPhase === "computer";
+
+  originalConfirmSelections();
+
+  if (gameIsOver) {
+    return;
+  }
+
+  if (completedComputerResponse) {
+    setComputerPanelText(
+      "Computer’s Turn",
+      "Finishing privately…"
+    );
+
+    mainActionButton.disabled = true;
+
+    window.clearTimeout(
+      computerRollTimer
+    );
+
+    computerRollTimer =
+      window.setTimeout(
+        function () {
+          beginHumanTurn();
+        },
+        650
+      );
+
+    return;
+  }
+
+  if (isComputerGame()) {
+    window.clearTimeout(
+      computerRollTimer
+    );
+
+    computerRollTimer =
+      window.setTimeout(
+        function () {
+          beginComputerTurn();
+        },
+        500
+      );
+  }
+};
+
+
+clearEntireScoreSheet = function () {
+  window.clearTimeout(
+    computerRollTimer
+  );
+
+  computerTurnPhase = "human";
+
+  originalClearEntireScoreSheet();
+
+  if (isComputerGame()) {
+    beginHumanTurn();
+  }
+};
+
+
+showStartScreen = function () {
+  window.clearTimeout(
+    computerRollTimer
+  );
+
+  computerTurnPhase = "human";
+  setComputerDiceAppearance();
+
+  originalShowStartScreen();
+};
+
+
+/*
+  Convert the old score-versus-score panel into
+  one private turn-status panel.
+*/
+
+computerModeButton.addEventListener(
+  "click",
+  function () {
+    computerTurnPhase = "human";
+
+    const panel =
+      document.getElementById(
+        "computerStatusPanel"
+      );
+
+    if (panel) {
+      panel.innerHTML = `
+        <div class="computerTurnStatus privateTurnStatus">
+          <strong id="computerTurnLabel">
+            Your Turn
+          </strong>
+
+          <small id="computerTurnInstruction">
+            Roll all active dice
+          </small>
+        </div>
+      `;
+    }
+
+    beginHumanTurn();
+  }
+);
+
+
+virtualModeButton.addEventListener(
+  "click",
+  function () {
+    window.clearTimeout(
+      computerRollTimer
+    );
+
+    computerTurnPhase = "human";
+    setComputerDiceAppearance();
+  }
+);
+
+
+physicalModeButton.addEventListener(
+  "click",
+  function () {
+    window.clearTimeout(
+      computerRollTimer
+    );
+
+    computerTurnPhase = "human";
+    setComputerDiceAppearance();
+  }
+);
