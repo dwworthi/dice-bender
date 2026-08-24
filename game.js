@@ -2206,3 +2206,182 @@ physicalModeButton.addEventListener(
     setComputerDiceAppearance();
   }
 );
+/* =========================================
+   SKIP BUTTON OVER COLORED DICE
+   ========================================= */
+
+let computerTurnIsFinishing = false;
+
+const diceTrayElement =
+  document.getElementById("diceTray");
+
+const skipComputerWhiteButton =
+  document.createElement("button");
+
+skipComputerWhiteButton.id =
+  "skipComputerWhiteButton";
+
+skipComputerWhiteButton.type = "button";
+skipComputerWhiteButton.textContent =
+  "Skip White Dice";
+
+skipComputerWhiteButton.setAttribute(
+  "aria-label",
+  "Skip using the computer's white dice"
+);
+
+diceTrayElement.appendChild(
+  skipComputerWhiteButton
+);
+
+
+/*
+  Show the button over the colored dice only
+  after the computer's white dice have settled.
+*/
+
+function updateComputerSkipButton() {
+  const shouldShow =
+    isComputerGame() &&
+    computerTurnPhase === "computer" &&
+    diceHaveBeenRolled &&
+    !diceAreRolling &&
+    !computerTurnIsFinishing;
+
+  skipComputerWhiteButton.classList.toggle(
+    "visible",
+    shouldShow
+  );
+
+  skipComputerWhiteButton.disabled =
+    !shouldShow;
+}
+
+
+/*
+  Add the skip-button update to the existing
+  interface updates.
+*/
+
+const computerUpdateGameState =
+  updateGameState;
+
+updateGameState = function () {
+  computerUpdateGameState();
+  updateComputerSkipButton();
+
+  if (
+    isComputerGame() &&
+    computerTurnPhase === "computer" &&
+    diceHaveBeenRolled &&
+    !diceAreRolling &&
+    !computerTurnIsFinishing
+  ) {
+    if (pendingSelections.length > 0) {
+      mainActionButton.textContent =
+        "Lock In Selection";
+
+      mainActionButton.disabled = false;
+    } else {
+      mainActionButton.textContent =
+        "Select a Number";
+
+      mainActionButton.disabled = true;
+    }
+  }
+};
+
+
+/*
+  The dice appearance function is called as
+  soon as the white dice finish rolling.
+*/
+
+const computerSetDiceAppearance =
+  setComputerDiceAppearance;
+
+setComputerDiceAppearance = function () {
+  computerSetDiceAppearance();
+  updateComputerSkipButton();
+};
+
+
+/*
+  Hide the skip button while the computer
+  privately completes its turn.
+*/
+
+const computerFinishResponse =
+  finishComputerResponse;
+
+finishComputerResponse = function () {
+  computerTurnIsFinishing = true;
+  updateComputerSkipButton();
+  computerFinishResponse();
+};
+
+
+const computerConfirmSelections =
+  confirmSelections;
+
+confirmSelections = function () {
+  if (
+    isComputerGame() &&
+    computerTurnPhase === "computer"
+  ) {
+    computerTurnIsFinishing = true;
+    updateComputerSkipButton();
+  }
+
+  computerConfirmSelections();
+};
+
+
+/*
+  Reset the button when either new turn begins.
+*/
+
+const computerBeginHumanTurn =
+  beginHumanTurn;
+
+beginHumanTurn = function () {
+  computerTurnIsFinishing = false;
+  computerBeginHumanTurn();
+  updateComputerSkipButton();
+};
+
+
+const computerBeginComputerTurn =
+  beginComputerTurn;
+
+beginComputerTurn = async function () {
+  computerTurnIsFinishing = false;
+  updateComputerSkipButton();
+
+  await computerBeginComputerTurn();
+
+  updateComputerSkipButton();
+};
+
+
+/*
+  Tapping Skip clears any temporary white-dice
+  choice and finishes the computer's turn.
+*/
+
+skipComputerWhiteButton.addEventListener(
+  "click",
+  function () {
+    if (
+      isComputerGame() &&
+      computerTurnPhase === "computer" &&
+      diceHaveBeenRolled &&
+      !diceAreRolling
+    ) {
+      finishComputerResponse();
+    }
+  }
+);
+
+
+updateComputerSkipButton();

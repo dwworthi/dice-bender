@@ -2240,3 +2240,48 @@ button:active {
   filter: grayscale(1) brightness(0.75);
   transform: scale(0.94);
 }
+/* =========================================
+   SKIP BUTTON OVER COLORED DICE
+   ========================================= */
+
+#skipComputerWhiteButton {
+  display: none;
+  z-index: 5;
+
+  grid-column: 3 / 7;
+  grid-row: 1;
+
+  align-self: center;
+  justify-self: stretch;
+
+  min-height: 42px;
+  margin: 0 4px;
+  padding: 5px 10px;
+
+  color: #ffffff;
+  border: 1px solid rgba(220, 194, 255, 0.48);
+  border-radius: 11px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(112, 69, 175, 0.97),
+      rgba(58, 38, 101, 0.97)
+    );
+
+  box-shadow:
+    0 5px 12px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+#skipComputerWhiteButton.visible {
+  display: block;
+}
+
+#skipComputerWhiteButton:active {
+  transform: scale(0.97);
+}
