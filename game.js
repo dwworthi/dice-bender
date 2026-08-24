@@ -17,6 +17,9 @@ const virtualModeButton =
 const physicalModeButton =
   document.getElementById("physicalModeButton");
 
+const computerModeButton =
+  document.getElementById("computerModeButton");
+
 const howToPlayButton =
   document.getElementById("howToPlayButton");
 
@@ -1578,11 +1581,23 @@ penaltyButtons.forEach(function (button) {
 
 
 virtualModeButton.addEventListener("click", function () {
+  gameScreen.classList.remove("computer-game");
+
   showGameScreen("virtual");
 });
 
 
+computerModeButton.addEventListener("click", function () {
+  showGameScreen("virtual");
+
+  gameScreen.classList.add("computer-game");
+  modeLabel.textContent = "You vs Computer";
+});
+
+
 physicalModeButton.addEventListener("click", function () {
+  gameScreen.classList.remove("computer-game");
+
   showGameScreen("physical");
 });
 
