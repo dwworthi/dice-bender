@@ -2411,3 +2411,821 @@ skipComputerWhiteButton.addEventListener(
 
 
 updateComputerSkipButton();
+
+/* =========================================
+   HIDDEN COMPUTER SCORE SHEET AND STRATEGY
+   ========================================= */
+
+const computerRowOrder = [
+  "fire",
+  "air",
+  "earth",
+  "water"
+];
+
+const computerRowNumbers = {
+  fire: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+  air: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+  earth: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2],
+  water: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2]
+};
+
+let computerSheet = createFreshComputerSheet();
+let computerSecretColoredDice = null;
+let pendingComputerWhiteChoice = null;
+
+
+function createFreshComputerSheet() {
+  return {
+    rows: {
+      fire: {
+        furthestPosition: -1,
+        crossCount: 0,
+        locked: false
+      },
+
+      air: {
+        furthestPosition: -1,
+        crossCount: 0,
+        locked: false
+      },
+
+      earth: {
+        furthestPosition: -1,
+        crossCount: 0,
+        locked: false
+      },
+
+      water: {
+        furthestPosition: -1,
+        crossCount: 0,
+        locked: false
+      }
+    },
+
+    penalties: 0
+  };
+}
+
+
+function getHumanRow(color) {
+  return scoreRows[
+    computerRowOrder.indexOf(color)
+  ];
+}
+
+
+function humanLockedColor(color) {
+  const row = getHumanRow(color);
+
+  return getFinalNumberButton(row)
+    .classList.contains("confirmed");
+}
+
+
+function colorIsLockedForEveryone(color) {
+  return (
+    humanLockedColor(color) ||
+    computerSheet.rows[color].locked
+  );
+}
+
+
+function computerCanCross(
+  sheet,
+  color,
+  number
+) {
+  const rowState = sheet.rows[color];
+
+  if (
+    colorIsLockedForEveryone(color) ||
+    rowState.locked
+  ) {
+    return false;
+  }
+
+  const position =
+    computerRowNumbers[color]
+      .indexOf(number);
+
+  if (
+    position < 0 ||
+    position <= rowState.furthestPosition
+  ) {
+    return false;
+  }
+
+  const isFinalNumber =
+    position ===
+    computerRowNumbers[color].length - 1;
+
+  if (
+    isFinalNumber &&
+    rowState.crossCount < 5
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+
+function copyComputerSheet(sheet) {
+  const copy = createFreshComputerSheet();
+
+  copy.penalties = sheet.penalties;
+
+  computerRowOrder.forEach(function (color) {
+    copy.rows[color] = {
+      furthestPosition:
+        sheet.rows[color].furthestPosition,
+
+      crossCount:
+        sheet.rows[color].crossCount,
+
+      locked:
+        sheet.rows[color].locked
+    };
+  });
+
+  return copy;
+}
+
+
+function applyComputerCrossToSheet(
+  sheet,
+  color,
+  number
+) {
+  if (
+    !computerCanCross(
+      sheet,
+      color,
+      number
+    )
+  ) {
+    return false;
+  }
+
+  const rowState = sheet.rows[color];
+
+  const position =
+    computerRowNumbers[color]
+      .indexOf(number);
+
+  rowState.furthestPosition = position;
+  rowState.crossCount += 1;
+
+  if (
+    position ===
+    computerRowNumbers[color].length - 1
+  ) {
+    rowState.locked = true;
+  }
+
+  return true;
+}
+
+
+function scoreComputerSheet(sheet) {
+  let total = 0;
+
+  computerRowOrder.forEach(function (color) {
+    const rowState = sheet.rows[color];
+
+    const scoringCrosses =
+      rowState.crossCount +
+      (rowState.locked ? 1 : 0);
+
+    total += calculatePoints(
+      scoringCrosses
+    );
+  });
+
+  total -= sheet.penalties * 5;
+
+  return total;
+}
+
+
+function computerChoiceValue(
+  sheetBefore,
+  sheetAfter,
+  choices
+) {
+  let value =
+    scoreComputerSheet(sheetAfter) -
+    scoreComputerSheet(sheetBefore);
+
+  choices.forEach(function (choice) {
+    const rowBefore =
+      sheetBefore.rows[choice.color];
+
+    const newPosition =
+      computerRowNumbers[choice.color]
+        .indexOf(choice.number);
+
+    const skippedSpaces =
+      newPosition -
+      rowBefore.furthestPosition -
+      1;
+
+    value -= skippedSpaces * 0.42;
+
+    if (
+      newPosition >= 8 &&
+      rowBefore.crossCount < 4
+    ) {
+      value -= 1.5;
+    }
+
+    if (newPosition === 10) {
+      value += 6;
+    }
+  });
+
+  value += Math.random() * 0.35;
+
+  return value;
+}
+
+
+function getComputerWhiteChoices(
+  whiteTotal
+) {
+  return computerRowOrder
+    .filter(function (color) {
+      return computerCanCross(
+        computerSheet,
+        color,
+        whiteTotal
+      );
+    })
+    .map(function (color) {
+      return {
+        type: "white",
+        color: color,
+        number: whiteTotal
+      };
+    });
+}
+
+
+function getComputerColoredChoices(
+  whiteOne,
+  whiteTwo,
+  coloredDice
+) {
+  const choices = [];
+
+  computerRowOrder.forEach(function (color) {
+    const totals = new Set([
+      whiteOne + coloredDice[color],
+      whiteTwo + coloredDice[color]
+    ]);
+
+    totals.forEach(function (total) {
+      if (
+        computerCanCross(
+          computerSheet,
+          color,
+          total
+        )
+      ) {
+        choices.push({
+          type: "colored",
+          color: color,
+          number: total
+        });
+      }
+    });
+  });
+
+  return choices;
+}
+
+
+function findBestComputerTurn(
+  whiteOne,
+  whiteTwo,
+  coloredDice
+) {
+  const whiteChoices =
+    getComputerWhiteChoices(
+      whiteOne + whiteTwo
+    );
+
+  const coloredChoices =
+    getComputerColoredChoices(
+      whiteOne,
+      whiteTwo,
+      coloredDice
+    );
+
+  const possiblePlans = [];
+
+  whiteChoices.forEach(function (choice) {
+    possiblePlans.push([choice]);
+  });
+
+  coloredChoices.forEach(function (choice) {
+    possiblePlans.push([choice]);
+  });
+
+  whiteChoices.forEach(function (whiteChoice) {
+    coloredChoices.forEach(
+      function (coloredChoice) {
+        possiblePlans.push([
+          whiteChoice,
+          coloredChoice
+        ]);
+
+        possiblePlans.push([
+          coloredChoice,
+          whiteChoice
+        ]);
+      }
+    );
+  });
+
+  let bestPlan = [];
+  let bestValue = -Infinity;
+
+  possiblePlans.forEach(function (plan) {
+    const simulatedSheet =
+      copyComputerSheet(computerSheet);
+
+    const planIsLegal =
+      plan.every(function (choice) {
+        return applyComputerCrossToSheet(
+          simulatedSheet,
+          choice.color,
+          choice.number
+        );
+      });
+
+    if (!planIsLegal) {
+      return;
+    }
+
+    const planValue =
+      computerChoiceValue(
+        computerSheet,
+        simulatedSheet,
+        plan
+      );
+
+    if (planValue > bestValue) {
+      bestValue = planValue;
+      bestPlan = plan;
+    }
+  });
+
+  return bestPlan;
+}
+
+
+function applyComputerPlan(plan) {
+  plan.forEach(function (choice) {
+    applyComputerCrossToSheet(
+      computerSheet,
+      choice.color,
+      choice.number
+    );
+  });
+
+  updateGameState();
+}
+
+
+function chooseComputerWhiteResponse(
+  whiteTotal
+) {
+  const choices =
+    getComputerWhiteChoices(whiteTotal);
+
+  if (choices.length === 0) {
+    return null;
+  }
+
+  let bestChoice = null;
+  let bestValue = -Infinity;
+
+  choices.forEach(function (choice) {
+    const simulatedSheet =
+      copyComputerSheet(computerSheet);
+
+    applyComputerCrossToSheet(
+      simulatedSheet,
+      choice.color,
+      choice.number
+    );
+
+    const value =
+      computerChoiceValue(
+        computerSheet,
+        simulatedSheet,
+        [choice]
+      );
+
+    if (value > bestValue) {
+      bestValue = value;
+      bestChoice = choice;
+    }
+  });
+
+  return bestChoice;
+}
+
+
+function computerLockedRowCount() {
+  return computerRowOrder.filter(
+    function (color) {
+      return colorIsLockedForEveryone(color);
+    }
+  ).length;
+}
+
+
+function computerGameEndReason() {
+  if (getConfirmedPenaltyCount() >= 4) {
+    return "Four of your penalties ended the game.";
+  }
+
+  if (computerSheet.penalties >= 4) {
+    return "Four computer penalties ended the game.";
+  }
+
+  if (computerLockedRowCount() >= 2) {
+    return "Two elemental rows were locked.";
+  }
+
+  return null;
+}
+
+
+/*
+  Make rows locked by the computer unavailable
+  without revealing its other marks.
+*/
+
+const hiddenComputerNumberState =
+  updateNumberAndLockState;
+
+updateNumberAndLockState = function () {
+  hiddenComputerNumberState();
+
+  computerRowOrder.forEach(function (
+    color,
+    index
+  ) {
+    if (!computerSheet.rows[color].locked) {
+      return;
+    }
+
+    const row = scoreRows[index];
+
+    const lockButton =
+      row.querySelector(".lockBox");
+
+    row.classList.add("locked-row");
+
+    lockButton.classList.remove(
+      "pending-lock",
+      "unavailable-lock"
+    );
+
+    lockButton.classList.add(
+      "confirmed-lock"
+    );
+
+    getRowButtons(row).forEach(
+      function (button) {
+        if (
+          !button.classList.contains(
+            "confirmed"
+          )
+        ) {
+          button.classList.add(
+            "unavailable"
+          );
+
+          button.disabled = true;
+        }
+      }
+    );
+  });
+};
+
+
+const hiddenComputerDiceAvailability =
+  updateDiceAvailability;
+
+updateDiceAvailability = function () {
+  hiddenComputerDiceAvailability();
+
+  computerRowOrder.forEach(function (
+    color,
+    index
+  ) {
+    if (!computerSheet.rows[color].locked) {
+      return;
+    }
+
+    const die = trayDice[index + 2];
+
+    die.classList.add("removed-die");
+
+    die.setAttribute(
+      "aria-disabled",
+      "true"
+    );
+  });
+};
+
+
+const normalLockedRowCount =
+  getLockedRowCount;
+
+getLockedRowCount = function () {
+  if (!isComputerGame()) {
+    return normalLockedRowCount();
+  }
+
+  return computerLockedRowCount();
+};
+
+
+/*
+  Secretly create colored dice for the
+  computer. Only the white dice remain visible.
+*/
+
+const hiddenComputerRollVirtualDice =
+  rollVirtualDice;
+
+rollVirtualDice = async function () {
+  const computerIsRolling =
+    isComputerGame() &&
+    computerTurnPhase === "computer";
+
+  const humanIsRollingAgainstComputer =
+    isComputerGame() &&
+    computerTurnPhase === "human";
+
+  if (computerIsRolling) {
+    computerSecretColoredDice = {
+      fire: getRandomDieValue(),
+      air: getRandomDieValue(),
+      earth: getRandomDieValue(),
+      water: getRandomDieValue()
+    };
+  }
+
+  await hiddenComputerRollVirtualDice();
+
+  if (
+    computerIsRolling &&
+    diceHaveBeenRolled &&
+    !gameIsOver
+  ) {
+    const dice = getCurrentDiceValues();
+
+    const plan = findBestComputerTurn(
+      dice.whiteOne,
+      dice.whiteTwo,
+      computerSecretColoredDice
+    );
+
+    if (plan.length > 0) {
+      applyComputerPlan(plan);
+    } else {
+      computerSheet.penalties += 1;
+    }
+  }
+
+  if (
+    humanIsRollingAgainstComputer &&
+    diceHaveBeenRolled &&
+    !gameIsOver
+  ) {
+    const dice = getCurrentDiceValues();
+
+    pendingComputerWhiteChoice =
+      chooseComputerWhiteResponse(
+        dice.whiteOne + dice.whiteTwo
+      );
+  }
+};
+
+
+/*
+  Apply the computer's private white-dice
+  response after the player locks their turn.
+*/
+
+const hiddenComputerConfirmSelections =
+  confirmSelections;
+
+confirmSelections = function () {
+  const humanCompletedActiveTurn =
+    isComputerGame() &&
+    computerTurnPhase === "human";
+
+  hiddenComputerConfirmSelections();
+
+  if (
+    humanCompletedActiveTurn &&
+    pendingComputerWhiteChoice
+  ) {
+    applyComputerPlan([
+      pendingComputerWhiteChoice
+    ]);
+
+    pendingComputerWhiteChoice = null;
+  }
+
+  const reason =
+    isComputerGame()
+      ? computerGameEndReason()
+      : null;
+
+  if (reason && !gameIsOver) {
+    window.clearTimeout(
+      computerRollTimer
+    );
+
+    openResultsPanel(reason);
+  }
+};
+
+
+/*
+  Check for a computer-created ending before
+  beginning the player's next turn.
+*/
+
+const hiddenComputerBeginHumanTurn =
+  beginHumanTurn;
+
+beginHumanTurn = function () {
+  const reason =
+    isComputerGame()
+      ? computerGameEndReason()
+      : null;
+
+  if (reason) {
+    window.clearTimeout(
+      computerRollTimer
+    );
+
+    openResultsPanel(reason);
+    return;
+  }
+
+  hiddenComputerBeginHumanTurn();
+};
+
+
+/*
+  Reveal the computer score only on the final
+  results screen.
+*/
+
+const normalOpenResultsPanel =
+  openResultsPanel;
+
+openResultsPanel = function (reason) {
+  normalOpenResultsPanel(reason);
+
+  let comparison =
+    document.getElementById(
+      "computerFinalComparison"
+    );
+
+  if (!comparison) {
+    comparison =
+      document.createElement("div");
+
+    comparison.id =
+      "computerFinalComparison";
+
+    comparison.style.margin =
+      "10px 0 2px";
+
+    comparison.style.padding =
+      "9px 11px";
+
+    comparison.style.border =
+      "1px solid rgba(220, 194, 255, 0.32)";
+
+    comparison.style.borderRadius =
+      "12px";
+
+    comparison.style.background =
+      "rgba(92, 57, 145, 0.18)";
+
+    comparison.style.textAlign =
+      "center";
+
+    const breakdown =
+      document.querySelector(
+        ".resultsBreakdown"
+      );
+
+    breakdown.insertAdjacentElement(
+      "beforebegin",
+      comparison
+    );
+  }
+
+  if (!isComputerGame()) {
+    comparison.style.display = "none";
+    return;
+  }
+
+  const humanScore =
+    Number(totalScoreElement.textContent);
+
+  const computerScore =
+    scoreComputerSheet(computerSheet);
+
+  let outcome = "Tie Game";
+
+  if (humanScore > computerScore) {
+    outcome = "You Win!";
+  } else if (computerScore > humanScore) {
+    outcome = "Computer Wins";
+  }
+
+  comparison.style.display = "block";
+
+  comparison.innerHTML = `
+    <strong style="
+      display:block;
+      color:#dcc2ff;
+      font-size:16px;
+      margin-bottom:5px;
+    ">
+      ${outcome}
+    </strong>
+
+    <span style="
+      color:#ffffff;
+      font-size:13px;
+      font-weight:800;
+    ">
+      You: ${humanScore}
+      &nbsp;•&nbsp;
+      Computer: ${computerScore}
+    </span>
+  `;
+};
+
+
+/*
+  Reset all private computer information.
+*/
+
+function resetComputerSheet() {
+  computerSheet =
+    createFreshComputerSheet();
+
+  computerSecretColoredDice = null;
+  pendingComputerWhiteChoice = null;
+}
+
+
+const hiddenComputerClearEntireScoreSheet =
+  clearEntireScoreSheet;
+
+clearEntireScoreSheet = function () {
+  resetComputerSheet();
+  hiddenComputerClearEntireScoreSheet();
+};
+
+
+computerModeButton.addEventListener(
+  "click",
+  function () {
+    resetComputerSheet();
+    updateGameState();
+  }
+);
+
+
+virtualModeButton.addEventListener(
+  "click",
+  function () {
+    pendingComputerWhiteChoice = null;
+  }
+);
+
+
+physicalModeButton.addEventListener(
+  "click",
+  function () {
+    pendingComputerWhiteChoice = null;
+  }
+);
