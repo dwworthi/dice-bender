@@ -3911,3 +3911,393 @@ closeResultsPanel = function () {
 
   viewerOriginalCloseResults();
 };
+/* =========================================
+   COMPUTER ROW-LOCK WARNING AND FAIR TIMING
+   ========================================= */
+
+let pendingComputerActivePlan = null;
+
+
+/*
+  This is the original function that immediately
+  applies the computer's choices.
+*/
+
+const applyComputerPlanImmediately =
+  applyComputerPlan;
+
+
+/*
+  Work out whether the computer's planned move
+  will lock one or more colors.
+*/
+
+function getComputerPlanLockColors(plan) {
+  const simulatedSheet =
+    copyComputerSheet(computerSheet);
+
+  const lockColors = [];
+
+  plan.forEach(function (choice) {
+    const finalPosition =
+      computerRowNumbers[choice.color]
+        .length - 1;
+
+    const choicePosition =
+      computerRowNumbers[choice.color]
+        .indexOf(choice.number);
+
+    const crossWasAdded =
+      applyComputerCrossToSheet(
+        simulatedSheet,
+        choice.color,
+        choice.number
+      );
+
+    if (
+      crossWasAdded &&
+      choicePosition === finalPosition
+    ) {
+      lockColors.push(choice.color);
+    }
+  });
+
+  return [...new Set(lockColors)];
+}
+
+
+function capitalizeComputerColor(color) {
+  return (
+    color.charAt(0).toUpperCase() +
+    color.slice(1)
+  );
+}
+
+
+function clearComputerLockWarning() {
+  const panel =
+    document.getElementById(
+      "computerStatusPanel"
+    );
+
+  if (panel) {
+    panel.classList.remove(
+      "computer-lock-warning"
+    );
+  }
+}
+
+
+function showComputerLockWarning(colors) {
+  if (colors.length === 0) {
+    clearComputerLockWarning();
+    return;
+  }
+
+  const colorNames =
+    colors
+      .map(capitalizeComputerColor)
+      .join(" and ");
+
+  setComputerPanelText(
+    "⚠ Row Lock Warning",
+    `Computer may lock ${colorNames}. Use the white dice first if you want them.`
+  );
+
+  const panel =
+    document.getElementById(
+      "computerStatusPanel"
+    );
+
+  if (panel) {
+    panel.classList.add(
+      "computer-lock-warning"
+    );
+  }
+}
+
+
+/*
+  During the computer's turn, save its choices
+  instead of applying them immediately.
+
+  This gives the player time to use or skip the
+  two white dice before a row becomes locked.
+*/
+
+applyComputerPlan = function (plan) {
+  const computerIsWaitingForPlayer =
+    isComputerGame() &&
+    computerTurnPhase === "computer" &&
+    diceHaveBeenRolled &&
+    !computerTurnIsFinishing;
+
+  if (!computerIsWaitingForPlayer) {
+    applyComputerPlanImmediately(plan);
+    return;
+  }
+
+  pendingComputerActivePlan =
+    plan.map(function (choice) {
+      return {
+        type: choice.type,
+        color: choice.color,
+        number: choice.number
+      };
+    });
+
+  const lockColors =
+    getComputerPlanLockColors(
+      pendingComputerActivePlan
+    );
+
+  showComputerLockWarning(lockColors);
+};
+
+
+/*
+  Apply the saved computer moves only after the
+  player uses or skips the white dice.
+*/
+
+function finalizePendingComputerPlan() {
+  if (!pendingComputerActivePlan) {
+    clearComputerLockWarning();
+    return;
+  }
+
+  const plan =
+    pendingComputerActivePlan;
+
+  pendingComputerActivePlan = null;
+
+  clearComputerLockWarning();
+
+  applyComputerPlanImmediately(plan);
+
+  const endingReason =
+    computerGameEndReason();
+
+  if (endingReason && !gameIsOver) {
+    window.clearTimeout(
+      computerRollTimer
+    );
+
+    openResultsPanel(endingReason);
+  }
+}
+
+
+/*
+  Apply the computer's move after Skip Roll is
+  confirmed.
+*/
+
+const lockWarningFinishComputerResponse =
+  finishComputerResponse;
+
+finishComputerResponse = function () {
+  lockWarningFinishComputerResponse();
+  finalizePendingComputerPlan();
+};
+
+
+/*
+  Apply the computer's move after the player
+  locks in a white-dice selection.
+*/
+
+const lockWarningConfirmSelections =
+  confirmSelections;
+
+confirmSelections = function () {
+  const resolvingComputerTurn =
+    isComputerGame() &&
+    computerTurnPhase === "computer";
+
+  lockWarningConfirmSelections();
+
+  if (resolvingComputerTurn) {
+    finalizePendingComputerPlan();
+  }
+};
+
+
+/*
+  Remove old warnings when turns or games
+  change.
+*/
+
+const lockWarningBeginHumanTurn =
+  beginHumanTurn;
+
+beginHumanTurn = function () {
+  clearComputerLockWarning();
+  lockWarningBeginHumanTurn();
+};
+
+
+const lockWarningBeginComputerTurn =
+  beginComputerTurn;
+
+beginComputerTurn = async function () {
+  pendingComputerActivePlan = null;
+  clearComputerLockWarning();
+
+  await lockWarningBeginComputerTurn();
+};
+
+
+const lockWarningResetComputerSheet =
+  resetComputerSheet;
+
+resetComputerSheet = function () {
+  pendingComputerActivePlan = null;
+  clearComputerLockWarning();
+
+  lockWarningResetComputerSheet();
+};
+
+
+/*
+  If the computer locks a row, show that it is
+  unavailable without awarding the human a
+  bonus X in the lock box.
+*/
+
+const correctComputerLockDisplay =
+  updateNumberAndLockState;
+
+updateNumberAndLockState = function () {
+  correctComputerLockDisplay();
+
+  computerRowOrder.forEach(function (
+    color,
+    index
+  ) {
+    const computerLockedTheRow =
+      computerSheet.rows[color].locked;
+
+    const humanFinalButton =
+      getFinalNumberButton(
+        scoreRows[index]
+      );
+
+    const humanAlsoLockedTheRow =
+      humanFinalButton.classList.contains(
+        "confirmed"
+      );
+
+    if (
+      computerLockedTheRow &&
+      !humanAlsoLockedTheRow
+    ) {
+      const lockButton =
+        scoreRows[index].querySelector(
+          ".lockBox"
+        );
+
+      lockButton.classList.remove(
+        "confirmed-lock",
+        "pending-lock"
+      );
+
+      lockButton.classList.add(
+        "unavailable-lock"
+      );
+    }
+  });
+};
+
+
+/*
+  Correct the player's final score-sheet copy
+  as well. It should only show a lock X when
+  that player crossed the final number.
+*/
+
+const correctFinalHumanSheet =
+  showFinalHumanSheet;
+
+showFinalHumanSheet = function () {
+  correctFinalHumanSheet();
+
+  const displayedRows =
+    Array.from(
+      finalScoreSheetContainer
+        .querySelectorAll(".scoreRow")
+    );
+
+  displayedRows.forEach(function (
+    displayedRow,
+    index
+  ) {
+    const actualFinalButton =
+      getFinalNumberButton(
+        scoreRows[index]
+      );
+
+    const humanEarnedLock =
+      actualFinalButton.classList.contains(
+        "confirmed"
+      );
+
+    if (humanEarnedLock) {
+      return;
+    }
+
+    const displayedLockButton =
+      displayedRow.querySelector(
+        ".lockBox"
+      );
+
+    displayedLockButton.classList.remove(
+      "confirmed-lock",
+      "pending-lock"
+    );
+
+    displayedLockButton.classList.add(
+      "unavailable-lock"
+    );
+  });
+};
+
+
+/* WARNING APPEARANCE */
+
+const computerLockWarningStyles =
+  document.createElement("style");
+
+computerLockWarningStyles.textContent = `
+  #gameScreen.computer-game
+  .computerStatusPanel.computer-lock-warning {
+    border-color: rgba(255, 196, 79, 0.72);
+
+    background:
+      linear-gradient(
+        135deg,
+        rgba(144, 87, 24, 0.76),
+        rgba(62, 39, 34, 0.96)
+      );
+
+    box-shadow:
+      0 0 0 2px rgba(255, 190, 65, 0.1),
+      inset 0 1px 0 rgba(255,255,255,0.12);
+  }
+
+  #gameScreen.computer-game
+  .computerStatusPanel.computer-lock-warning
+  .computerTurnStatus strong {
+    color: #ffe19a;
+  }
+
+  #gameScreen.computer-game
+  .computerStatusPanel.computer-lock-warning
+  .computerTurnStatus small {
+    color: #fff4d6;
+  }
+`;
+
+document.head.appendChild(
+  computerLockWarningStyles
+);
