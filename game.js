@@ -5068,3 +5068,542 @@ document.addEventListener(
     }
   }
 );
+/* =========================================
+   THE AVATAR STATE DIFFICULTY
+   ========================================= */
+
+computerDifficultySettings.avatar = {
+  gapPenalty: 2.25,
+  earlyFinishPenalty: 8,
+  lockBonus: 18,
+  opponentPressure: 4,
+  randomAmount: 0,
+  whiteSkipChance: 0
+};
+
+
+/* ADD THE FOURTH DIFFICULTY BUTTON */
+
+const avatarDifficultyButton =
+  document.createElement("button");
+
+avatarDifficultyButton.className =
+  "difficultyChoice avatarChoice";
+
+avatarDifficultyButton.dataset.difficulty =
+  "avatar";
+
+avatarDifficultyButton.type = "button";
+
+avatarDifficultyButton.innerHTML = `
+  <span class="avatarDifficultyLabel">
+    ULTIMATE CHALLENGE
+  </span>
+
+  <span class="difficultyIcon">
+    🌌
+  </span>
+
+  <span>
+    <strong>The Avatar State</strong>
+
+    <small>
+      Long-term strategy with no intentional mistakes
+    </small>
+  </span>
+`;
+
+document.querySelector(
+  ".difficultyChoices"
+).appendChild(
+  avatarDifficultyButton
+);
+
+
+avatarDifficultyButton.addEventListener(
+  "click",
+  function () {
+    startSelectedComputerGame("avatar");
+  }
+);
+
+
+/* AVATAR STATE BUTTON APPEARANCE */
+
+const avatarDifficultyStyles =
+  document.createElement("style");
+
+avatarDifficultyStyles.textContent = `
+  .difficultyChoice.avatarChoice {
+    overflow: hidden;
+
+    border-color: rgba(123, 211, 255, 0.78);
+
+    background:
+      radial-gradient(
+        circle at 15% 20%,
+        rgba(102, 218, 255, 0.27),
+        transparent 31%
+      ),
+      radial-gradient(
+        circle at 86% 78%,
+        rgba(188, 111, 255, 0.25),
+        transparent 36%
+      ),
+      linear-gradient(
+        135deg,
+        rgba(25, 91, 130, 0.92),
+        rgba(67, 37, 112, 0.94)
+      );
+
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.18),
+      0 0 13px rgba(99, 197, 255, 0.13);
+  }
+
+  .difficultyChoice.avatarChoice
+  .difficultyIcon {
+    background:
+      radial-gradient(
+        circle,
+        rgba(255,255,255,0.24),
+        rgba(95,181,255,0.11)
+      );
+
+    box-shadow:
+      0 0 12px rgba(124,211,255,0.23);
+  }
+
+  .difficultyChoice.avatarChoice small {
+    color: #d9eeff;
+  }
+
+  .avatarDifficultyLabel {
+    position: absolute;
+    top: 4px;
+    right: 7px;
+
+    color: #aee8ff;
+    font-size: 6px;
+    font-weight: 950;
+    letter-spacing: 0.8px;
+  }
+
+  @media (max-height: 700px) {
+    .difficultyChoices {
+      gap: 5px;
+    }
+
+    .difficultyChoice {
+      min-height: 51px;
+    }
+
+    .difficultyCard {
+      max-height: 97dvh;
+      overflow-y: auto;
+    }
+  }
+`;
+
+document.head.appendChild(
+  avatarDifficultyStyles
+);
+
+
+/* =========================================
+   AVATAR STATE LONG-TERM STRATEGY
+   ========================================= */
+
+/*
+  Number of ways two six-sided dice can create
+  each total. This helps the Avatar understand
+  which numbers are common or rare.
+*/
+
+const avatarDiceSumWays = {
+  2: 1,
+  3: 2,
+  4: 3,
+  5: 4,
+  6: 5,
+  7: 6,
+  8: 5,
+  9: 4,
+  10: 3,
+  11: 2,
+  12: 1
+};
+
+
+function getAvatarFuturePotential(
+  sheet,
+  color
+) {
+  const row = sheet.rows[color];
+
+  if (
+    row.locked ||
+    colorIsLockedForEveryone(color)
+  ) {
+    return 0;
+  }
+
+  const rowNumbers =
+    computerRowNumbers[color];
+
+  const futureNumbers =
+    rowNumbers.slice(
+      row.furthestPosition + 1
+    );
+
+  let potential = 0;
+
+  /*
+    Nearby future spaces matter more than
+    distant spaces.
+  */
+
+  futureNumbers.forEach(function (
+    number,
+    index
+  ) {
+    const probabilityWeight =
+      avatarDiceSumWays[number];
+
+    const distanceDiscount =
+      1 / (1 + index * 0.24);
+
+    potential +=
+      probabilityWeight *
+      distanceDiscount;
+  });
+
+  /*
+    Rows with several crosses are closer to
+    producing large triangular scores.
+  */
+
+  potential += row.crossCount * 1.4;
+
+  if (row.crossCount >= 5) {
+    potential += 4;
+  }
+
+  return potential;
+}
+
+
+function getAvatarTotalPotential(sheet) {
+  return computerRowOrder.reduce(
+    function (total, color) {
+      return (
+        total +
+        getAvatarFuturePotential(
+          sheet,
+          color
+        )
+      );
+    },
+    0
+  );
+}
+
+
+function getAvatarLockedColorCount(sheet) {
+  return computerRowOrder.filter(
+    function (color) {
+      return (
+        sheet.rows[color].locked ||
+        humanLockedColor(color)
+      );
+    }
+  ).length;
+}
+
+
+function getAvatarHumanScore() {
+  return Number(
+    totalScoreElement.textContent
+  );
+}
+
+
+function getAvatarChoiceValue(
+  sheetBefore,
+  sheetAfter,
+  choices
+) {
+  const computerScoreBefore =
+    scoreComputerSheet(sheetBefore);
+
+  const computerScoreAfter =
+    scoreComputerSheet(sheetAfter);
+
+  let value =
+    (computerScoreAfter -
+      computerScoreBefore) * 2.15;
+
+  const futurePotentialBefore =
+    getAvatarTotalPotential(sheetBefore);
+
+  const futurePotentialAfter =
+    getAvatarTotalPotential(sheetAfter);
+
+  value +=
+    (futurePotentialAfter -
+      futurePotentialBefore) * 0.72;
+
+
+  choices.forEach(function (choice) {
+    const rowBefore =
+      sheetBefore.rows[choice.color];
+
+    const rowAfter =
+      sheetAfter.rows[choice.color];
+
+    const position =
+      computerRowNumbers[choice.color]
+        .indexOf(choice.number);
+
+    const skippedSpaces =
+      position -
+      rowBefore.furthestPosition -
+      1;
+
+    /*
+      Avoid abandoning useful numbers.
+    */
+
+    value -= skippedSpaces * 2.25;
+
+
+    /*
+      Rare rolls are valuable opportunities,
+      especially early in a row.
+    */
+
+    const rollWays =
+      avatarDiceSumWays[choice.number];
+
+    const rarityBonus =
+      7 - rollWays;
+
+    if (skippedSpaces === 0) {
+      value += rarityBonus * 0.7;
+    } else {
+      value += rarityBonus * 0.24;
+    }
+
+
+    /*
+      Reward building a row steadily without
+      rushing toward its final spaces.
+    */
+
+    if (skippedSpaces === 0) {
+      value += 1.8;
+    }
+
+    if (
+      position >= 8 &&
+      rowBefore.crossCount < 5
+    ) {
+      value -= 8;
+    }
+
+
+    /*
+      Watch the human's position in this color.
+    */
+
+    const humanPressure =
+      getHumanPressureForColor(
+        choice.color
+      );
+
+    if (
+      humanPressure.confirmedCrosses >= 5
+    ) {
+      value += 4;
+    }
+
+    if (
+      humanPressure.furthestPosition >= 8
+    ) {
+      value += 5;
+    }
+
+
+    /*
+      A lock is especially useful when the
+      human is threatening the same row.
+    */
+
+    if (
+      !rowBefore.locked &&
+      rowAfter.locked
+    ) {
+      value += 18;
+
+      if (
+        humanPressure.confirmedCrosses >= 5
+      ) {
+        value += 9;
+      }
+    }
+  });
+
+
+  /*
+    Using both available actions is normally
+    stronger than wasting one.
+  */
+
+  if (choices.length === 2) {
+    value += 4.5;
+
+    if (
+      choices[0].color !==
+      choices[1].color
+    ) {
+      value += 0.75;
+    }
+  }
+
+
+  /*
+    Decide whether ending the game is actually
+    beneficial. The Avatar avoids ending while
+    behind and aggressively ends while ahead.
+  */
+
+  const lockedBefore =
+    getAvatarLockedColorCount(
+      sheetBefore
+    );
+
+  const lockedAfter =
+    getAvatarLockedColorCount(
+      sheetAfter
+    );
+
+  const moveEndsGame =
+    lockedBefore < 2 &&
+    lockedAfter >= 2;
+
+  if (moveEndsGame) {
+    const humanScore =
+      getAvatarHumanScore();
+
+    if (computerScoreAfter > humanScore) {
+      value += 120;
+    } else if (
+      computerScoreAfter === humanScore
+    ) {
+      value += 12;
+    } else {
+      value -= 140;
+    }
+  }
+
+
+  /*
+    If the human is approaching four penalties,
+    prepare for a possible sudden ending.
+  */
+
+  if (
+    getConfirmedPenaltyCount() >= 3 &&
+    computerScoreAfter >
+      getAvatarHumanScore()
+  ) {
+    value += 8;
+  }
+
+  return value;
+}
+
+
+/*
+  Use the advanced evaluation only for The
+  Avatar State. The other three levels keep
+  their existing personalities.
+*/
+
+const beforeAvatarChoiceValue =
+  calculateDifficultyChoiceValue;
+
+calculateDifficultyChoiceValue = function (
+  sheetBefore,
+  sheetAfter,
+  choices
+) {
+  if (
+    currentComputerDifficulty !== "avatar"
+  ) {
+    return beforeAvatarChoiceValue(
+      sheetBefore,
+      sheetAfter,
+      choices
+    );
+  }
+
+  return getAvatarChoiceValue(
+    sheetBefore,
+    sheetAfter,
+    choices
+  );
+};
+
+
+/* =========================================
+   AVATAR STATE LABELS
+   ========================================= */
+
+const beforeAvatarStartComputerGame =
+  startSelectedComputerGame;
+
+startSelectedComputerGame = function (
+  difficulty
+) {
+  beforeAvatarStartComputerGame(
+    difficulty
+  );
+
+  if (difficulty !== "avatar") {
+    return;
+  }
+
+  modeLabel.textContent =
+    "You vs The Avatar State";
+
+  setComputerPanelText(
+    "Your Turn",
+    "The Avatar State awaits"
+  );
+};
+
+
+const beforeAvatarOpenResults =
+  openResultsPanel;
+
+openResultsPanel = function (reason) {
+  beforeAvatarOpenResults(reason);
+
+  if (
+    !isComputerGame() ||
+    currentComputerDifficulty !== "avatar"
+  ) {
+    return;
+  }
+
+  const difficultyResultLabel =
+    document.getElementById(
+      "difficultyResultLabel"
+    );
+
+  if (difficultyResultLabel) {
+    difficultyResultLabel.textContent =
+      "The Avatar State";
+  }
+};
