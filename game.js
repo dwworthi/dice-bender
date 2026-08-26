@@ -5607,3 +5607,816 @@ openResultsPanel = function (reason) {
       "The Avatar State";
   }
 };
+/* =========================================
+   ONLINE MULTIPLAYER GAME BRIDGE
+   ========================================= */
+
+const onlineGameState = {
+  active: false,
+  role: "waiting",
+  playerName: "",
+  rollerName: "",
+  diceReady: false,
+  globallyLockedColors: new Set()
+};
+
+
+function isOnlineGame() {
+  return onlineGameState.active;
+}
+
+
+/* =========================================
+   START AND EXIT ONLINE GAME
+   ========================================= */
+
+function startOnlineGameScreen(playerName) {
+  onlineGameState.active = true;
+  onlineGameState.role = "waiting";
+  onlineGameState.playerName = playerName;
+  onlineGameState.rollerName = "";
+  onlineGameState.diceReady = false;
+
+  onlineGameState.globallyLockedColors.clear();
+
+  gameScreen.classList.remove(
+    "computer-game"
+  );
+
+  gameScreen.classList.add(
+    "online-game"
+  );
+
+  clearEntireScoreSheet();
+  showGameScreen("virtual");
+
+  modeLabel.textContent =
+    "Online Multiplayer";
+
+  const headingRight =
+    document.querySelector(
+      ".scoreHeading span:last-child"
+    );
+
+  headingRight.innerHTML =
+    `${playerName} · <strong id="totalScore">0</strong> pts`;
+
+  totalScoreElement =
+    document.getElementById(
+      "totalScore"
+    );
+
+  updateGameState();
+}
+
+
+function exitOnlineGameScreen() {
+  onlineGameState.active = false;
+  onlineGameState.role = "waiting";
+  onlineGameState.playerName = "";
+  onlineGameState.rollerName = "";
+  onlineGameState.diceReady = false;
+
+  onlineGameState.globallyLockedColors.clear();
+
+  gameScreen.classList.remove(
+    "online-game"
+  );
+
+  clearEntireScoreSheet();
+  showStartScreen();
+}
+
+
+/* =========================================
+   ONLINE TURN STATUS
+   ========================================= */
+
+function setOnlineTurnState(options) {
+  onlineGameState.role =
+    options.role || "waiting";
+
+  onlineGameState.rollerName =
+    options.rollerName || "";
+
+  onlineGameState.diceReady =
+    Boolean(options.diceReady);
+
+  diceHaveBeenRolled =
+    onlineGameState.diceReady;
+
+  if (
+    options.diceValues &&
+    onlineGameState.diceReady
+  ) {
+    setOnlineDiceValues(
+      options.diceValues
+    );
+  }
+
+  updateGameState();
+}
+
+
+function getOnlineTurnState() {
+  return {
+    active: onlineGameState.active,
+    role: onlineGameState.role,
+    playerName:
+      onlineGameState.playerName,
+    rollerName:
+      onlineGameState.rollerName,
+    diceReady:
+      onlineGameState.diceReady
+  };
+}
+
+
+/* =========================================
+   SYNCHRONIZED DICE
+   ========================================= */
+
+function setOnlineDiceValues(values) {
+  const orderedValues = [
+    values.whiteOne,
+    values.whiteTwo,
+    values.fire,
+    values.air,
+    values.earth,
+    values.water
+  ];
+
+  trayDice.forEach(function (die, index) {
+    if (
+      orderedValues[index] !== undefined
+    ) {
+      showDieValue(
+        die,
+        orderedValues[index]
+      );
+    }
+  });
+}
+
+
+function animateOnlineDieToValue(
+  die,
+  finalValue,
+  delay
+) {
+  return new Promise(function (resolve) {
+    window.setTimeout(function () {
+      let temporaryValue =
+        getRandomDieValue();
+
+      showDieValue(
+        die,
+        temporaryValue
+      );
+
+      const faceTimer =
+        window.setInterval(function () {
+          temporaryValue =
+            getRandomDieValue();
+
+          showDieValue(
+            die,
+            temporaryValue
+          );
+        }, 70);
+
+      const animation =
+        die.animate(
+          [
+            {
+              transform:
+                "rotate(0deg) scale(1)"
+            },
+
+            {
+              transform:
+                "rotate(150deg) scale(0.86)"
+            },
+
+            {
+              transform:
+                "rotate(310deg) scale(1.12)"
+            },
+
+            {
+              transform:
+                "rotate(430deg) scale(0.94)"
+            },
+
+            {
+              transform:
+                "rotate(360deg) scale(1)"
+            }
+          ],
+
+          {
+            duration: 540,
+            easing:
+              "cubic-bezier(0.2, 0.72, 0.25, 1)"
+          }
+        );
+
+      animation.finished
+        .catch(function () {
+          return undefined;
+        })
+        .then(function () {
+          window.clearInterval(
+            faceTimer
+          );
+
+          showDieValue(
+            die,
+            finalValue
+          );
+
+          resolve();
+        });
+    }, delay);
+  });
+}
+
+
+async function animateOnlineDice(
+  values,
+  rollAllDice
+) {
+  if (
+    !onlineGameState.active ||
+    diceAreRolling
+  ) {
+    return;
+  }
+
+  diceAreRolling = true;
+  diceHaveBeenRolled = false;
+  onlineGameState.diceReady = false;
+
+  updateGameState();
+
+  const orderedValues = [
+    values.whiteOne,
+    values.whiteTwo,
+    values.fire,
+    values.air,
+    values.earth,
+    values.water
+  ];
+
+  const diceToAnimate =
+    trayDice.filter(function (die, index) {
+      if (
+        die.classList.contains(
+          "removed-die"
+        )
+      ) {
+        return false;
+      }
+
+      return rollAllDice || index < 2;
+    });
+
+  const animations =
+    diceToAnimate.map(function (
+      die,
+      animationIndex
+    ) {
+      const dieIndex =
+        trayDice.indexOf(die);
+
+      return animateOnlineDieToValue(
+        die,
+        orderedValues[dieIndex],
+        animationIndex * 35
+      );
+    });
+
+  await Promise.all(animations);
+
+  setOnlineDiceValues(values);
+
+  diceAreRolling = false;
+  diceHaveBeenRolled = true;
+  onlineGameState.diceReady = true;
+
+  updateGameState();
+}
+
+
+/* =========================================
+   ONLINE SELECTION RULES
+   ========================================= */
+
+const beforeOnlineSelectionValidation =
+  virtualSelectionsAreValid;
+
+virtualSelectionsAreValid = function (
+  selections
+) {
+  if (!onlineGameState.active) {
+    return beforeOnlineSelectionValidation(
+      selections
+    );
+  }
+
+  /*
+    Players who are not rolling may use only
+    one selection from the two white dice.
+  */
+
+  if (onlineGameState.role === "responder") {
+    return (
+      selections.length <= 1 &&
+      (
+        selections.length === 0 ||
+        matchesWhiteAction(
+          selections[0]
+        )
+      )
+    );
+  }
+
+  /*
+    The roller retains the Dice Bender rule:
+    one white action and one colored action in
+    whichever order is most beneficial.
+  */
+
+  if (onlineGameState.role === "roller") {
+    return beforeOnlineSelectionValidation(
+      selections
+    );
+  }
+
+  return selections.length === 0;
+};
+
+
+const beforeOnlinePenaltySelection =
+  selectPenalty;
+
+selectPenalty = function (button) {
+  if (
+    onlineGameState.active &&
+    onlineGameState.role !== "roller"
+  ) {
+    return;
+  }
+
+  beforeOnlinePenaltySelection(button);
+};
+
+
+/* =========================================
+   GLOBAL ROW LOCKS
+   ========================================= */
+
+function setOnlineGlobalLocks(colors) {
+  onlineGameState.globallyLockedColors =
+    new Set(colors || []);
+
+  updateGameState();
+}
+
+
+const beforeOnlineNumberState =
+  updateNumberAndLockState;
+
+updateNumberAndLockState = function () {
+  beforeOnlineNumberState();
+
+  if (!onlineGameState.active) {
+    return;
+  }
+
+  computerRowOrder.forEach(function (
+    color,
+    index
+  ) {
+    if (
+      !onlineGameState
+        .globallyLockedColors
+        .has(color)
+    ) {
+      return;
+    }
+
+    const row = scoreRows[index];
+
+    const finalButton =
+      getFinalNumberButton(row);
+
+    const playerEarnedTheLock =
+      finalButton.classList.contains(
+        "confirmed"
+      );
+
+    row.classList.add("locked-row");
+
+    const lockButton =
+      row.querySelector(".lockBox");
+
+    if (!playerEarnedTheLock) {
+      lockButton.classList.remove(
+        "confirmed-lock",
+        "pending-lock"
+      );
+
+      lockButton.classList.add(
+        "unavailable-lock"
+      );
+    }
+
+    getRowButtons(row).forEach(
+      function (button) {
+        if (
+          !button.classList.contains(
+            "confirmed"
+          )
+        ) {
+          button.classList.add(
+            "unavailable"
+          );
+
+          button.disabled = true;
+        }
+      }
+    );
+  });
+};
+
+
+const beforeOnlineDiceAvailability =
+  updateDiceAvailability;
+
+updateDiceAvailability = function () {
+  beforeOnlineDiceAvailability();
+
+  if (!onlineGameState.active) {
+    return;
+  }
+
+  computerRowOrder.forEach(function (
+    color,
+    index
+  ) {
+    if (
+      !onlineGameState
+        .globallyLockedColors
+        .has(color)
+    ) {
+      return;
+    }
+
+    const die = trayDice[index + 2];
+
+    die.classList.add("removed-die");
+
+    die.setAttribute(
+      "aria-disabled",
+      "true"
+    );
+  });
+};
+
+
+/* =========================================
+   ONLINE BUTTON STATE
+   ========================================= */
+
+const beforeOnlineGameStateUpdate =
+  updateGameState;
+
+updateGameState = function () {
+  beforeOnlineGameStateUpdate();
+
+  if (!onlineGameState.active) {
+    return;
+  }
+
+  newGameButton.disabled = true;
+
+  const hasPendingChoice =
+    pendingSelections.length > 0 ||
+    pendingPenalty !== null;
+
+  if (diceAreRolling) {
+    mainActionButton.textContent =
+      "Rolling…";
+
+    mainActionButton.disabled = true;
+    return;
+  }
+
+  if (
+    onlineGameState.role === "waiting"
+  ) {
+    mainActionButton.textContent =
+      onlineGameState.rollerName
+        ? `Waiting for ${onlineGameState.rollerName}`
+        : "Waiting for Players";
+
+    mainActionButton.disabled = true;
+    return;
+  }
+
+  if (
+    onlineGameState.role === "roller" &&
+    !onlineGameState.diceReady
+  ) {
+    mainActionButton.textContent =
+      "Roll Dice";
+
+    mainActionButton.disabled = false;
+    return;
+  }
+
+  if (
+    onlineGameState.role === "roller"
+  ) {
+    mainActionButton.textContent =
+      "Lock In Selections";
+
+    mainActionButton.disabled =
+      !hasPendingChoice;
+
+    return;
+  }
+
+  if (
+    onlineGameState.role === "responder"
+  ) {
+    mainActionButton.textContent =
+      hasPendingChoice
+        ? "Lock In Selection"
+        : "Skip White Dice";
+
+    mainActionButton.disabled = false;
+  }
+};
+
+
+/* =========================================
+   SCORE-SHEET DATA
+   ========================================= */
+
+function getOnlineSheetData() {
+  const rows = {};
+
+  computerRowOrder.forEach(function (
+    color,
+    index
+  ) {
+    const row = scoreRows[index];
+
+    const crossedNumbers =
+      getRowButtons(row)
+        .filter(function (button) {
+          return button.classList.contains(
+            "confirmed"
+          );
+        })
+        .map(function (button) {
+          return Number(
+            button.textContent.trim()
+          );
+        });
+
+    rows[color] = {
+      crossedNumbers: crossedNumbers,
+
+      locked:
+        getFinalNumberButton(row)
+          .classList.contains(
+            "confirmed"
+          )
+    };
+  });
+
+  return {
+    rows: rows,
+
+    penalties:
+      getConfirmedPenaltyCount(),
+
+    totalScore:
+      Number(
+        totalScoreElement.textContent
+      )
+  };
+}
+
+
+function loadOnlineSheetData(sheet) {
+  if (!sheet || !sheet.rows) {
+    return;
+  }
+
+  numberButtons.forEach(function (button) {
+    button.classList.remove(
+      "crossed",
+      "confirmed",
+      "unavailable",
+      "preview-unavailable",
+      "final-restricted"
+    );
+
+    button.setAttribute(
+      "aria-pressed",
+      "false"
+    );
+
+    button.disabled = false;
+  });
+
+  penaltyButtons.forEach(function (button) {
+    button.classList.remove(
+      "pending-penalty",
+      "confirmed-penalty"
+    );
+
+    button.setAttribute(
+      "aria-pressed",
+      "false"
+    );
+
+    button.disabled = false;
+  });
+
+  computerRowOrder.forEach(function (
+    color,
+    index
+  ) {
+    const rowData =
+      sheet.rows[color] || {};
+
+    const crossedNumbers =
+      rowData.crossedNumbers || [];
+
+    getRowButtons(scoreRows[index])
+      .forEach(function (button) {
+        const number =
+          Number(
+            button.textContent.trim()
+          );
+
+        if (
+          crossedNumbers.includes(number)
+        ) {
+          button.classList.add(
+            "crossed",
+            "confirmed"
+          );
+
+          button.setAttribute(
+            "aria-pressed",
+            "true"
+          );
+        }
+      });
+  });
+
+  const penaltyCount =
+    Math.min(
+      Number(sheet.penalties) || 0,
+      penaltyButtons.length
+    );
+
+  penaltyButtons.forEach(function (
+    button,
+    index
+  ) {
+    if (index < penaltyCount) {
+      button.classList.add(
+        "confirmed-penalty"
+      );
+
+      button.disabled = true;
+    }
+  });
+
+  pendingSelections = [];
+  pendingPenalty = null;
+
+  updateGameState();
+}
+
+
+/* =========================================
+   COMPLETE OR SKIP ONLINE RESPONSE
+   ========================================= */
+
+function confirmOnlineSelections() {
+  confirmSelections();
+
+  onlineGameState.diceReady = false;
+
+  return getOnlineSheetData();
+}
+
+
+function skipOnlineWhiteDice() {
+  clearPendingChoices();
+
+  diceHaveBeenRolled = false;
+  onlineGameState.diceReady = false;
+
+  updateGameState();
+
+  return getOnlineSheetData();
+}
+
+
+function getOnlinePendingInformation() {
+  const lockColors = [];
+
+  pendingSelections.forEach(
+    function (button) {
+      const row =
+        button.closest(".scoreRow");
+
+      if (
+        button ===
+        getFinalNumberButton(row)
+      ) {
+        lockColors.push(
+          getButtonRowColor(button)
+        );
+      }
+    }
+  );
+
+  return {
+    selectionCount:
+      pendingSelections.length,
+
+    hasPenalty:
+      pendingPenalty !== null,
+
+    lockColors: lockColors
+  };
+}
+
+
+/* =========================================
+   EXPOSE THE BRIDGE TO online.js
+   ========================================= */
+
+window.diceBenderGame = {
+  start:
+    startOnlineGameScreen,
+
+  exit:
+    exitOnlineGameScreen,
+
+  setTurn:
+    setOnlineTurnState,
+
+  getTurn:
+    getOnlineTurnState,
+
+  animateDice:
+    animateOnlineDice,
+
+  setDice:
+    setOnlineDiceValues,
+
+  setGlobalLocks:
+    setOnlineGlobalLocks,
+
+  getSheet:
+    getOnlineSheetData,
+
+  loadSheet:
+    loadOnlineSheetData,
+
+  confirmSelections:
+    confirmOnlineSelections,
+
+  skipWhite:
+    skipOnlineWhiteDice,
+
+  getPending:
+    getOnlinePendingInformation,
+
+  openConfirmation:
+    openLockPanel,
+
+  closeConfirmation:
+    closeLockPanel,
+
+  clearPending:
+    clearPendingChoices
+};
+
+
+window.dispatchEvent(
+  new CustomEvent(
+    "dicebender-game-bridge-ready"
+  )
+);
