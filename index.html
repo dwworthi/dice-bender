@@ -395,5 +395,12 @@
     document.body.appendChild(gameScript);
   </script>
 
+  <!-- Load online multiplayer with automatic cache-busting. -->
+  <script type="module">
+    import(
+      `./online.js?v=${window.diceBenderVersion}`
+    );
+  </script>
+
 </body>
 </html>
