@@ -82,7 +82,7 @@ onlineConnectionStatus.textContent =
   "Connecting online…";
 
 onlineConnectionStatus.style.cssText = `
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
 
