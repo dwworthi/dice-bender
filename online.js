@@ -48,7 +48,7 @@ versionLabel.insertAdjacentElement("beforebegin", connection);
 const onlineButton = document.createElement("button");
 onlineButton.className = "modeButton online";
 onlineButton.type = "button";
-onlineButton.innerHTML = '<span class="buttonIcon">â</span><span class="buttonText"><strong>Online Multiplayer</strong><small>Create or join a private room</small></span>';
+onlineButton.innerHTML = '<span class="buttonIcon">&#9678;</span><span class="buttonText"><strong>Online Multiplayer</strong><small>Create or join a private room</small></span>';
 physicalButton.insertAdjacentElement("beforebegin", onlineButton);
 
 const menu = document.createElement("div");
@@ -239,5 +239,5 @@ $("displayRoomCode").addEventListener("click",async()=>{try{await navigator.clip
 codeInput.addEventListener("input",()=>codeInput.value=cleanCode(codeInput.value));
 
 const savedName=localStorage.getItem("diceBenderPlayerName");if(savedName)nameInput.value=savedName;
-onAuthStateChanged(auth,user=>{if(!user)return;window.diceBenderOnline.user=user;window.diceBenderOnline.ready=true;connection.textContent="â Online ready";connection.style.color="#86e6ae";connection.style.borderColor="rgba(93,220,145,.28)";});
+onAuthStateChanged(auth,user=>{if(!user)return;window.diceBenderOnline.user=user;window.diceBenderOnline.ready=true;connection.textContent="Online ready";connection.style.color="#86e6ae";connection.style.borderColor="rgba(93,220,145,.28)";});
 signInAnonymously(auth).catch(error=>{console.error(error);connection.textContent="Online connection unavailable";connection.style.color="#ff9b94";});
