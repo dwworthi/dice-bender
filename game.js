@@ -6420,3 +6420,334 @@ window.dispatchEvent(
     "dicebender-game-bridge-ready"
   )
 );
+/* =========================================
+   PERSONAL LOCK LIMIT AND SIMULTANEOUS LOCKS
+   ========================================= */
+
+/*
+  A player may personally earn no more than
+  two row locks.
+
+  Different players may still lock different
+  rows during the same shared roll.
+*/
+
+function getHumanPersonalLockCount() {
+  return scoreRows.filter(function (row) {
+    return getFinalNumberButton(row)
+      .classList.contains("confirmed");
+  }).length;
+}
+
+
+function getHumanPendingLockCount() {
+  return scoreRows.filter(function (row) {
+    const finalButton =
+      getFinalNumberButton(row);
+
+    return (
+      !finalButton.classList.contains(
+        "confirmed"
+      ) &&
+      pendingSelections.includes(
+        finalButton
+      )
+    );
+  }).length;
+}
+
+
+function getComputerPersonalLockCount(sheet) {
+  return computerRowOrder.filter(
+    function (color) {
+      return sheet.rows[color].locked;
+    }
+  ).length;
+}
+
+
+/* =========================================
+   PREVENT THE HUMAN'S THIRD LOCK
+   ========================================= */
+
+const beforePersonalLockSelectNumber =
+  selectNumber;
+
+selectNumber = function (button) {
+  const row =
+    button.closest(".scoreRow");
+
+  const isFinalNumber =
+    row &&
+    button === getFinalNumberButton(row);
+
+  const isAlreadyPending =
+    pendingSelections.includes(button);
+
+  const isAlreadyConfirmed =
+    button.classList.contains("confirmed");
+
+  if (
+    isFinalNumber &&
+    !isAlreadyPending &&
+    !isAlreadyConfirmed &&
+    (
+      getHumanPersonalLockCount() +
+      getHumanPendingLockCount()
+    ) >= 2
+  ) {
+    window.alert(
+      "You already have two row locks. You cannot personally lock a third row."
+    );
+
+    return;
+  }
+
+  beforePersonalLockSelectNumber(button);
+};
+
+
+/*
+  Once the player has two confirmed or pending
+  locks, dim the remaining final numbers.
+*/
+
+const beforePersonalLockNumberState =
+  updateNumberAndLockState;
+
+updateNumberAndLockState = function () {
+  beforePersonalLockNumberState();
+
+  const personalLockTotal =
+    getHumanPersonalLockCount() +
+    getHumanPendingLockCount();
+
+  if (personalLockTotal < 2) {
+    return;
+  }
+
+  scoreRows.forEach(function (row) {
+    const finalButton =
+      getFinalNumberButton(row);
+
+    const playerAlreadySelectedIt =
+      finalButton.classList.contains(
+        "crossed"
+      );
+
+    if (!playerAlreadySelectedIt) {
+      finalButton.classList.add(
+        "final-restricted"
+      );
+
+      finalButton.disabled = true;
+    }
+  });
+};
+
+
+/* =========================================
+   PREVENT THE COMPUTER'S THIRD LOCK
+   ========================================= */
+
+let resolvingSimultaneousComputerMove =
+  false;
+
+const beforePersonalLockComputerCanCross =
+  computerCanCross;
+
+computerCanCross = function (
+  sheet,
+  color,
+  number
+) {
+  const rowState =
+    sheet.rows[color];
+
+  const position =
+    computerRowNumbers[color]
+      .indexOf(number);
+
+  const finalPosition =
+    computerRowNumbers[color].length - 1;
+
+  const isFinalNumber =
+    position === finalPosition;
+
+  /*
+    A computer that already owns two locks
+    cannot personally earn another.
+  */
+
+  if (
+    isFinalNumber &&
+    !rowState.locked &&
+    getComputerPersonalLockCount(sheet) >= 2
+  ) {
+    return false;
+  }
+
+  /*
+    During one shared roll, the human and
+    computer may both earn the same row lock.
+
+    The row may appear globally locked after
+    the human confirms, but the computer's
+    already-planned final-number move remains
+    valid.
+  */
+
+  if (
+    resolvingSimultaneousComputerMove &&
+    humanLockedColor(color) &&
+    !rowState.locked &&
+    isFinalNumber
+  ) {
+    if (
+      position <= rowState.furthestPosition ||
+      rowState.crossCount < 5
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  return beforePersonalLockComputerCanCross(
+    sheet,
+    color,
+    number
+  );
+};
+
+
+/* =========================================
+   RESOLVE ALL SHARED-ROLL MOVES FIRST
+   ========================================= */
+
+/*
+  When the human finishes their active turn,
+  the computer still receives its white-dice
+  response before the game checks for an ending.
+*/
+
+const beforeSimultaneousGameEndCheck =
+  checkForGameEnd;
+
+checkForGameEnd = function () {
+  const computerStillHasWhiteResponse =
+    isComputerGame() &&
+    computerTurnPhase === "human" &&
+    pendingComputerWhiteChoice !== null;
+
+  const computerStillHasActivePlan =
+    isComputerGame() &&
+    computerTurnPhase === "computer" &&
+    pendingComputerActivePlan !== null;
+
+  if (
+    computerStillHasWhiteResponse ||
+    computerStillHasActivePlan
+  ) {
+    return;
+  }
+
+  beforeSimultaneousGameEndCheck();
+};
+
+
+/*
+  Allow a saved computer move to resolve as
+  part of the same roll, even if the human
+  just locked that color.
+*/
+
+const beforeSimultaneousApplyComputerPlan =
+  applyComputerPlan;
+
+applyComputerPlan = function (plan) {
+  const isSharedRollResolution =
+    isComputerGame() &&
+    computerTurnPhase === "human";
+
+  const previousResolutionState =
+    resolvingSimultaneousComputerMove;
+
+  if (isSharedRollResolution) {
+    resolvingSimultaneousComputerMove =
+      true;
+  }
+
+  try {
+    return beforeSimultaneousApplyComputerPlan(
+      plan
+    );
+  } finally {
+    resolvingSimultaneousComputerMove =
+      previousResolutionState;
+  }
+};
+
+
+const beforeSimultaneousFinalizePlan =
+  finalizePendingComputerPlan;
+
+finalizePendingComputerPlan = function () {
+  const previousResolutionState =
+    resolvingSimultaneousComputerMove;
+
+  resolvingSimultaneousComputerMove = true;
+
+  try {
+    beforeSimultaneousFinalizePlan();
+  } finally {
+    resolvingSimultaneousComputerMove =
+      previousResolutionState;
+  }
+};
+
+
+/* =========================================
+   CLEARER COMPUTER LOCK WARNING
+   ========================================= */
+
+showComputerLockWarning = function (colors) {
+  if (colors.length === 0) {
+    clearComputerLockWarning();
+    return;
+  }
+
+  const colorNames =
+    colors
+      .map(capitalizeComputerColor)
+      .join(" and ");
+
+  const rowWord =
+    colors.length === 1
+      ? "row"
+      : "rows";
+
+  setComputerPanelText(
+    "Row Lock Warning",
+    `Computer plans to lock the ${colorNames} ${rowWord}. You may still use the white dice.`
+  );
+
+  const panel =
+    document.getElementById(
+      "computerStatusPanel"
+    );
+
+  if (panel) {
+    panel.classList.add(
+      "computer-lock-warning"
+    );
+  }
+};
+
+
+/*
+  Recalculate the interface now that the
+  corrected rules are active.
+*/
+
+updateGameState();
