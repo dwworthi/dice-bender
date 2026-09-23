@@ -6751,3 +6751,1135 @@ showComputerLockWarning = function (colors) {
 */
 
 updateGameState();
+
+/* =========================================
+   MULTIPLE COMPUTER OPPONENTS
+   Supports one through four computers
+   ========================================= */
+
+let selectedComputerCount = 1;
+let multipleComputerSheets = [];
+let activeComputerIndex = 0;
+let pendingPassiveComputerChoices = [];
+let resolvingPassiveComputerChoices = false;
+
+
+/* =========================================
+   OPPONENT COUNT SELECTOR
+   ========================================= */
+
+const opponentCountChooser =
+  document.createElement("div");
+
+opponentCountChooser.className =
+  "opponentCountChooser";
+
+opponentCountChooser.innerHTML = `
+  <span class="opponentCountLabel">
+    NUMBER OF COMPUTERS
+  </span>
+
+  <div class="opponentCountButtons">
+    <button
+      class="opponentCountButton selected"
+      data-count="1"
+      type="button"
+    >
+      1
+    </button>
+
+    <button
+      class="opponentCountButton"
+      data-count="2"
+      type="button"
+    >
+      2
+    </button>
+
+    <button
+      class="opponentCountButton"
+      data-count="3"
+      type="button"
+    >
+      3
+    </button>
+
+    <button
+      class="opponentCountButton"
+      data-count="4"
+      type="button"
+    >
+      4
+    </button>
+  </div>
+`;
+
+document.querySelector(
+  ".difficultyChoices"
+).insertAdjacentElement(
+  "beforebegin",
+  opponentCountChooser
+);
+
+const opponentCountButtons =
+  Array.from(
+    document.querySelectorAll(
+      ".opponentCountButton"
+    )
+  );
+
+opponentCountButtons.forEach(
+  function (button) {
+    button.addEventListener(
+      "click",
+      function () {
+        selectedComputerCount =
+          Number(button.dataset.count);
+
+        opponentCountButtons.forEach(
+          function (otherButton) {
+            otherButton.classList.toggle(
+              "selected",
+              otherButton === button
+            );
+          }
+        );
+      }
+    );
+  }
+);
+
+
+/* COUNT SELECTOR APPEARANCE */
+
+const multipleComputerStyles =
+  document.createElement("style");
+
+multipleComputerStyles.textContent = `
+  .opponentCountChooser {
+    margin-bottom: 10px;
+    padding: 8px;
+
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    background: rgba(0,0,0,0.18);
+  }
+
+  .opponentCountLabel {
+    display: block;
+    margin-bottom: 6px;
+
+    color: #aebbc7;
+    font-size: 7px;
+    font-weight: 950;
+    letter-spacing: 1.1px;
+  }
+
+  .opponentCountButtons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+  }
+
+  .opponentCountButton {
+    min-height: 34px;
+
+    color: #bdc9d4;
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 9px;
+    background: rgba(255,255,255,0.06);
+
+    font: inherit;
+    font-size: 12px;
+    font-weight: 950;
+  }
+
+  .opponentCountButton.selected {
+    color: #ffffff;
+    border-color: rgba(191,147,255,0.68);
+
+    background:
+      linear-gradient(
+        135deg,
+        rgba(112,69,175,0.95),
+        rgba(57,38,101,0.95)
+      );
+  }
+
+  .multiComputerResultLine {
+    display: flex;
+    justify-content: space-between;
+
+    margin-top: 4px;
+    padding: 5px 8px;
+
+    border-radius: 7px;
+    background: rgba(255,255,255,0.06);
+
+    color: #d9c7ef;
+    font-size: 10px;
+    font-weight: 850;
+  }
+
+  .multiComputerResultLine strong {
+    color: #ffffff;
+  }
+
+  .multiComputerTabs {
+    display: grid;
+    gap: 5px;
+  }
+
+  .multiComputerTabs button {
+    min-height: 35px;
+
+    color: #aab7c5;
+    border: 0;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+
+    font: inherit;
+    font-size: 9px;
+    font-weight: 900;
+  }
+
+  .multiComputerTabs button.active {
+    color: #ffffff;
+
+    background:
+      linear-gradient(
+        135deg,
+        rgba(110,69,174,0.96),
+        rgba(55,37,98,0.96)
+      );
+  }
+
+  @media (max-height: 700px) {
+    .opponentCountChooser {
+      margin-bottom: 6px;
+      padding: 6px;
+    }
+
+    .opponentCountButton {
+      min-height: 29px;
+    }
+  }
+`;
+
+document.head.appendChild(
+  multipleComputerStyles
+);
+
+
+/* =========================================
+   MULTIPLE COMPUTER SHEETS
+   ========================================= */
+
+function multipleComputersAreActive() {
+  return (
+    isComputerGame() &&
+    selectedComputerCount > 1
+  );
+}
+
+
+function createMultipleComputerSheets() {
+  multipleComputerSheets = [];
+
+  for (
+    let index = 0;
+    index < selectedComputerCount;
+    index += 1
+  ) {
+    multipleComputerSheets.push(
+      createFreshComputerSheet()
+    );
+  }
+
+  activeComputerIndex = 0;
+
+  computerSheet =
+    multipleComputerSheets[0];
+
+  pendingPassiveComputerChoices = [];
+}
+
+
+const beforeMultipleComputerReset =
+  resetComputerSheet;
+
+resetComputerSheet = function () {
+  beforeMultipleComputerReset();
+
+  if (selectedComputerCount > 1) {
+    createMultipleComputerSheets();
+  } else {
+    multipleComputerSheets = [
+      computerSheet
+    ];
+
+    activeComputerIndex = 0;
+    pendingPassiveComputerChoices = [];
+  }
+};
+
+
+/* =========================================
+   GLOBAL LOCKS ACROSS ALL COMPUTERS
+   ========================================= */
+
+const beforeMultipleColorLockCheck =
+  colorIsLockedForEveryone;
+
+colorIsLockedForEveryone = function (
+  color
+) {
+  if (!multipleComputersAreActive()) {
+    return beforeMultipleColorLockCheck(
+      color
+    );
+  }
+
+  return (
+    humanLockedColor(color) ||
+    multipleComputerSheets.some(
+      function (sheet) {
+        return sheet.rows[color].locked;
+      }
+    )
+  );
+};
+
+
+computerLockedRowCount = function () {
+  return computerRowOrder.filter(
+    function (color) {
+      return colorIsLockedForEveryone(
+        color
+      );
+    }
+  ).length;
+};
+
+
+/* =========================================
+   COMPUTER TURN LABELS
+   ========================================= */
+
+const beforeMultiplePanelText =
+  setComputerPanelText;
+
+setComputerPanelText = function (
+  title,
+  instruction
+) {
+  let displayedTitle = title;
+
+  if (
+    multipleComputersAreActive() &&
+    title === "Computer’s Turn"
+  ) {
+    displayedTitle =
+      `Computer ${activeComputerIndex + 1}'s Turn`;
+  }
+
+  beforeMultiplePanelText(
+    displayedTitle,
+    instruction
+  );
+};
+
+
+showComputerLockWarning = function (
+  colors
+) {
+  if (colors.length === 0) {
+    clearComputerLockWarning();
+    return;
+  }
+
+  const colorNames =
+    colors
+      .map(capitalizeComputerColor)
+      .join(" and ");
+
+  const rowWord =
+    colors.length === 1
+      ? "row"
+      : "rows";
+
+  const computerName =
+    multipleComputersAreActive()
+      ? `Computer ${activeComputerIndex + 1}`
+      : "Computer";
+
+  setComputerPanelText(
+    "Row Lock Warning",
+    `${computerName} plans to lock the ${colorNames} ${rowWord}. You may still use the white dice.`
+  );
+
+  const panel =
+    document.getElementById(
+      "computerStatusPanel"
+    );
+
+  if (panel) {
+    panel.classList.add(
+      "computer-lock-warning"
+    );
+  }
+};
+
+
+/* =========================================
+   PASSIVE COMPUTER WHITE-DICE RESPONSES
+   ========================================= */
+
+function collectPassiveComputerChoices(
+  whiteTotal,
+  activeIndex
+) {
+  pendingPassiveComputerChoices = [];
+
+  multipleComputerSheets.forEach(
+    function (sheet, index) {
+      if (index === activeIndex) {
+        return;
+      }
+
+      computerSheet = sheet;
+
+      const choice =
+        chooseComputerWhiteResponse(
+          whiteTotal
+        );
+
+      if (choice) {
+        pendingPassiveComputerChoices.push({
+          computerIndex: index,
+
+          choice: {
+            type: choice.type,
+            color: choice.color,
+            number: choice.number
+          }
+        });
+      }
+    }
+  );
+
+  if (
+    computerTurnPhase === "computer"
+  ) {
+    computerSheet =
+      multipleComputerSheets[
+        activeComputerIndex
+      ];
+  } else {
+    computerSheet =
+      multipleComputerSheets[0];
+  }
+}
+
+
+/*
+  Permit a passive computer to complete a final
+  number selected during this shared roll, even
+  if another player locked that row first.
+*/
+
+const beforePassiveComputerCanCross =
+  computerCanCross;
+
+computerCanCross = function (
+  sheet,
+  color,
+  number
+) {
+  const rowState =
+    sheet.rows[color];
+
+  const position =
+    computerRowNumbers[color]
+      .indexOf(number);
+
+  const finalPosition =
+    computerRowNumbers[color].length - 1;
+
+  const isFinalNumber =
+    position === finalPosition;
+
+  if (
+    resolvingPassiveComputerChoices &&
+    colorIsLockedForEveryone(color) &&
+    !rowState.locked &&
+    isFinalNumber
+  ) {
+    if (
+      position <= rowState.furthestPosition ||
+      rowState.crossCount < 5 ||
+      getComputerPersonalLockCount(sheet) >= 2
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  return beforePassiveComputerCanCross(
+    sheet,
+    color,
+    number
+  );
+};
+
+
+function resolvePassiveComputerChoices() {
+  if (
+    !multipleComputersAreActive() ||
+    pendingPassiveComputerChoices.length === 0
+  ) {
+    pendingPassiveComputerChoices = [];
+    return;
+  }
+
+  const savedComputerSheet =
+    computerSheet;
+
+  resolvingPassiveComputerChoices = true;
+  resolvingSimultaneousComputerMove = true;
+
+  const choicesToApply = [
+    ...pendingPassiveComputerChoices
+  ];
+
+  pendingPassiveComputerChoices = [];
+
+  choicesToApply.forEach(
+    function (response) {
+      computerSheet =
+        multipleComputerSheets[
+          response.computerIndex
+        ];
+
+      applyComputerPlanImmediately([
+        response.choice
+      ]);
+    }
+  );
+
+  resolvingPassiveComputerChoices = false;
+  resolvingSimultaneousComputerMove = false;
+
+  computerSheet = savedComputerSheet;
+
+  updateGameState();
+}
+
+
+/* =========================================
+   ROLLING WITH MULTIPLE COMPUTERS
+   ========================================= */
+
+const beforeMultipleComputerRoll =
+  rollVirtualDice;
+
+rollVirtualDice = async function () {
+  const multiGame =
+    multipleComputersAreActive();
+
+  const phaseBeforeRoll =
+    computerTurnPhase;
+
+  const actingComputer =
+    phaseBeforeRoll === "computer"
+      ? activeComputerIndex
+      : -1;
+
+  if (multiGame && actingComputer >= 0) {
+    computerSheet =
+      multipleComputerSheets[
+        actingComputer
+      ];
+  }
+
+  await beforeMultipleComputerRoll();
+
+  if (
+    !multiGame ||
+    !diceHaveBeenRolled ||
+    gameIsOver
+  ) {
+    return;
+  }
+
+  const diceValues =
+    getCurrentDiceValues();
+
+  collectPassiveComputerChoices(
+    diceValues.whiteOne +
+      diceValues.whiteTwo,
+    actingComputer
+  );
+
+  /*
+    Disable the old single-computer response.
+    The new array now contains every passive
+    computer's response.
+  */
+
+  pendingComputerWhiteChoice = null;
+};
+
+
+/* =========================================
+   DELAY ENDING UNTIL EVERYONE RESPONDS
+   ========================================= */
+
+const beforeMultipleGameEndCheck =
+  checkForGameEnd;
+
+checkForGameEnd = function () {
+  if (
+    multipleComputersAreActive() &&
+    pendingPassiveComputerChoices.length > 0
+  ) {
+    return;
+  }
+
+  beforeMultipleGameEndCheck();
+};
+
+
+computerGameEndReason = function () {
+  if (getConfirmedPenaltyCount() >= 4) {
+    return "Four of your penalties ended the game.";
+  }
+
+  const penalizedComputerIndex =
+    multipleComputerSheets.findIndex(
+      function (sheet) {
+        return sheet.penalties >= 4;
+      }
+    );
+
+  if (penalizedComputerIndex >= 0) {
+    return (
+      `Four Computer ${
+        penalizedComputerIndex + 1
+      } penalties ended the game.`
+    );
+  }
+
+  if (computerLockedRowCount() >= 2) {
+    return "Two or more elemental rows were locked.";
+  }
+
+  return null;
+};
+
+
+/* =========================================
+   FINISH EACH SHARED ROLL
+   ========================================= */
+
+const beforeMultipleConfirmSelections =
+  confirmSelections;
+
+confirmSelections = function () {
+  const wasMultipleComputerGame =
+    multipleComputersAreActive();
+
+  const phaseBeforeConfirmation =
+    computerTurnPhase;
+
+  if (
+    wasMultipleComputerGame &&
+    phaseBeforeConfirmation === "human"
+  ) {
+    activeComputerIndex = 0;
+  }
+
+  beforeMultipleConfirmSelections();
+
+  if (!wasMultipleComputerGame) {
+    return;
+  }
+
+  resolvePassiveComputerChoices();
+
+  const reason =
+    computerGameEndReason();
+
+  if (reason && !gameIsOver) {
+    window.clearTimeout(
+      computerRollTimer
+    );
+
+    openResultsPanel(reason);
+  }
+};
+
+
+const beforeMultipleFinishResponse =
+  finishComputerResponse;
+
+finishComputerResponse = function () {
+  const wasMultipleComputerGame =
+    multipleComputersAreActive();
+
+  beforeMultipleFinishResponse();
+
+  if (!wasMultipleComputerGame) {
+    return;
+  }
+
+  resolvePassiveComputerChoices();
+
+  const reason =
+    computerGameEndReason();
+
+  if (reason && !gameIsOver) {
+    window.clearTimeout(
+      computerRollTimer
+    );
+
+    openResultsPanel(reason);
+  }
+};
+
+
+/* =========================================
+   ROTATE THROUGH THE COMPUTERS
+   ========================================= */
+
+const beforeMultipleBeginComputerTurn =
+  beginComputerTurn;
+
+beginComputerTurn = async function () {
+  if (multipleComputersAreActive()) {
+    computerSheet =
+      multipleComputerSheets[
+        activeComputerIndex
+      ];
+
+    pendingPassiveComputerChoices = [];
+  }
+
+  await beforeMultipleBeginComputerTurn();
+};
+
+
+const beforeMultipleBeginHumanTurn =
+  beginHumanTurn;
+
+beginHumanTurn = function () {
+  if (
+    multipleComputersAreActive() &&
+    computerTurnPhase === "computer" &&
+    !gameIsOver &&
+    activeComputerIndex <
+      multipleComputerSheets.length - 1
+  ) {
+    activeComputerIndex += 1;
+
+    computerSheet =
+      multipleComputerSheets[
+        activeComputerIndex
+      ];
+
+    window.setTimeout(
+      function () {
+        beginComputerTurn();
+      },
+      160
+    );
+
+    return;
+  }
+
+  activeComputerIndex = 0;
+
+  if (
+    multipleComputersAreActive()
+  ) {
+    computerSheet =
+      multipleComputerSheets[0];
+  }
+
+  beforeMultipleBeginHumanTurn();
+};
+
+
+/* =========================================
+   SHOW LOCKS FROM ANY COMPUTER
+   ========================================= */
+
+const beforeMultipleNumberDisplay =
+  updateNumberAndLockState;
+
+updateNumberAndLockState = function () {
+  beforeMultipleNumberDisplay();
+
+  if (!multipleComputersAreActive()) {
+    return;
+  }
+
+  computerRowOrder.forEach(function (
+    color,
+    index
+  ) {
+    const aComputerLockedThisColor =
+      multipleComputerSheets.some(
+        function (sheet) {
+          return sheet.rows[color].locked;
+        }
+      );
+
+    if (!aComputerLockedThisColor) {
+      return;
+    }
+
+    const row = scoreRows[index];
+
+    const humanFinalButton =
+      getFinalNumberButton(row);
+
+    const humanEarnedTheLock =
+      humanFinalButton.classList.contains(
+        "confirmed"
+      );
+
+    row.classList.add("locked-row");
+
+    const lockButton =
+      row.querySelector(".lockBox");
+
+    if (!humanEarnedTheLock) {
+      lockButton.classList.remove(
+        "confirmed-lock",
+        "pending-lock"
+      );
+
+      lockButton.classList.add(
+        "unavailable-lock"
+      );
+    }
+
+    getRowButtons(row).forEach(
+      function (button) {
+        if (
+          !button.classList.contains(
+            "confirmed"
+          )
+        ) {
+          button.classList.add(
+            "unavailable"
+          );
+
+          button.disabled = true;
+        }
+      }
+    );
+  });
+};
+
+
+const beforeMultipleDiceDisplay =
+  updateDiceAvailability;
+
+updateDiceAvailability = function () {
+  beforeMultipleDiceDisplay();
+
+  if (!multipleComputersAreActive()) {
+    return;
+  }
+
+  computerRowOrder.forEach(function (
+    color,
+    index
+  ) {
+    if (!colorIsLockedForEveryone(color)) {
+      return;
+    }
+
+    const die =
+      trayDice[index + 2];
+
+    die.classList.add("removed-die");
+
+    die.setAttribute(
+      "aria-disabled",
+      "true"
+    );
+  });
+};
+
+
+/* =========================================
+   START THE SELECTED MULTI-COMPUTER GAME
+   ========================================= */
+
+const beforeMultipleStartGame =
+  startSelectedComputerGame;
+
+startSelectedComputerGame = function (
+  difficulty
+) {
+  beforeMultipleStartGame(difficulty);
+
+  if (selectedComputerCount <= 1) {
+    return;
+  }
+
+  modeLabel.textContent =
+    `You vs ${selectedComputerCount} Computers`;
+
+  setComputerPanelText(
+    "Your Turn",
+    `${selectedComputerCount} ${difficulty} opponents`
+  );
+
+  updateGameState();
+};
+
+
+/* =========================================
+   MULTIPLE-COMPUTER FINAL RESULTS
+   ========================================= */
+
+const beforeMultipleOpenResults =
+  openResultsPanel;
+
+openResultsPanel = function (reason) {
+  beforeMultipleOpenResults(reason);
+
+  if (!multipleComputersAreActive()) {
+    return;
+  }
+
+  const comparison =
+    document.getElementById(
+      "computerFinalComparison"
+    );
+
+  if (!comparison) {
+    return;
+  }
+
+  const humanScore =
+    Number(totalScoreElement.textContent);
+
+  const computerScores =
+    multipleComputerSheets.map(
+      function (sheet) {
+        return scoreComputerSheet(sheet);
+      }
+    );
+
+  const highestComputerScore =
+    Math.max(...computerScores);
+
+  let outcome = "You Win!";
+
+  if (highestComputerScore > humanScore) {
+    const winningIndex =
+      computerScores.indexOf(
+        highestComputerScore
+      );
+
+    outcome =
+      `Computer ${winningIndex + 1} Wins`;
+  } else if (
+    highestComputerScore === humanScore
+  ) {
+    outcome = "Tie Game";
+  }
+
+  const computerLines =
+    computerScores
+      .map(function (score, index) {
+        return `
+          <div class="multiComputerResultLine">
+            <span>Computer ${index + 1}</span>
+            <strong>${score} pts</strong>
+          </div>
+        `;
+      })
+      .join("");
+
+  comparison.innerHTML = `
+    <strong style="
+      display:block;
+      color:#dcc2ff;
+      font-size:16px;
+      margin-bottom:7px;
+    ">
+      ${outcome}
+    </strong>
+
+    <div class="multiComputerResultLine">
+      <span>You</span>
+      <strong>${humanScore} pts</strong>
+    </div>
+
+    ${computerLines}
+  `;
+};
+
+
+/* =========================================
+   FINAL SCORE-SHEET TABS
+   ========================================= */
+
+function activateMultiSheetTab(
+  selectedButton
+) {
+  document
+    .querySelectorAll(
+      ".multiComputerTabs button"
+    )
+    .forEach(function (button) {
+      button.classList.toggle(
+        "active",
+        button === selectedButton
+      );
+    });
+}
+
+
+function showMultipleComputerSheet(
+  computerIndex,
+  selectedButton
+) {
+  const savedComputerSheet =
+    computerSheet;
+
+  computerSheet =
+    multipleComputerSheets[
+      computerIndex
+    ];
+
+  showFinalComputerSheet();
+
+  const headingRight =
+    finalScoreSheetContainer.querySelector(
+      ".scoreHeading span:last-child"
+    );
+
+  if (headingRight) {
+    headingRight.innerHTML =
+      `Computer ${computerIndex + 1} · ` +
+      `<strong>${
+        scoreComputerSheet(computerSheet)
+      }</strong> pts`;
+  }
+
+  computerSheet = savedComputerSheet;
+
+  activateMultiSheetTab(
+    selectedButton
+  );
+}
+
+
+function prepareMultipleComputerTabs() {
+  if (!multipleComputersAreActive()) {
+    return;
+  }
+
+  const tabs =
+    document.querySelector(
+      ".scoreSheetTabs"
+    );
+
+  tabs.className =
+    "scoreSheetTabs multiComputerTabs";
+
+  tabs.style.gridTemplateColumns =
+    `repeat(${
+      Math.min(
+        selectedComputerCount + 1,
+        3
+      )
+    }, 1fr)`;
+
+  tabs.innerHTML = "";
+
+  const humanButton =
+    document.createElement("button");
+
+  humanButton.type = "button";
+  humanButton.textContent = "Your Sheet";
+  humanButton.classList.add("active");
+
+  humanButton.addEventListener(
+    "click",
+    function () {
+      showFinalHumanSheet();
+
+      activateMultiSheetTab(
+        humanButton
+      );
+    }
+  );
+
+  tabs.appendChild(humanButton);
+
+  multipleComputerSheets.forEach(
+    function (sheet, index) {
+      const button =
+        document.createElement("button");
+
+      button.type = "button";
+
+      button.textContent =
+        `Computer ${index + 1}`;
+
+      button.addEventListener(
+        "click",
+        function () {
+          showMultipleComputerSheet(
+            index,
+            button
+          );
+        }
+      );
+
+      tabs.appendChild(button);
+    }
+  );
+
+  showFinalHumanSheet();
+
+  activateMultiSheetTab(
+    humanButton
+  );
+}
+
+
+/*
+  The original viewer opens first. This listener
+  then replaces its two tabs with all players.
+*/
+
+viewScoreSheetsButton.addEventListener(
+  "click",
+  function () {
+    window.setTimeout(
+      prepareMultipleComputerTabs,
+      0
+    );
+  }
+);
+
+
+/* =========================================
+   FINAL INITIALIZATION
+   ========================================= */
+
+multipleComputerSheets = [
+  computerSheet
+];
+
+updateGameState();
