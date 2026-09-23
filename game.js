@@ -7883,3 +7883,213 @@ multipleComputerSheets = [
 ];
 
 updateGameState();
+/* =========================================
+   WARN ABOUT EVERY COMPUTER ROW LOCK
+   Includes passive white-dice responses
+   ========================================= */
+
+function computerChoiceWillLockRow(
+  sheet,
+  choice
+) {
+  if (!sheet || !choice) {
+    return false;
+  }
+
+  const position =
+    computerRowNumbers[choice.color]
+      .indexOf(choice.number);
+
+  const finalPosition =
+    computerRowNumbers[choice.color]
+      .length - 1;
+
+  return (
+    position === finalPosition &&
+    !sheet.rows[choice.color].locked
+  );
+}
+
+
+function showAllPlannedComputerLocks(
+  warnings
+) {
+  if (warnings.length === 0) {
+    clearComputerLockWarning();
+    return;
+  }
+
+  const warningText =
+    warnings
+      .map(function (warning) {
+        return (
+          `${warning.computerName} plans to lock ` +
+          `the ${capitalizeComputerColor(
+            warning.color
+          )} row`
+        );
+      })
+      .join("; ");
+
+  setComputerPanelText(
+    "Row Lock Warning",
+    `${warningText}. You may still use the white dice.`
+  );
+
+  const panel =
+    document.getElementById(
+      "computerStatusPanel"
+    );
+
+  if (panel) {
+    panel.classList.add(
+      "computer-lock-warning"
+    );
+  }
+}
+
+
+const beforeCompleteComputerLockWarnings =
+  rollVirtualDice;
+
+rollVirtualDice = async function () {
+  const phaseBeforeRoll =
+    computerTurnPhase;
+
+  await beforeCompleteComputerLockWarnings();
+
+  if (
+    !isComputerGame() ||
+    !diceHaveBeenRolled ||
+    gameIsOver
+  ) {
+    return;
+  }
+
+  const warnings = [];
+
+
+  /*
+    The active computer may plan a colored or
+    white action that closes a row.
+  */
+
+  if (
+    phaseBeforeRoll === "computer" &&
+    pendingComputerActivePlan
+  ) {
+    const activeSheet =
+      multipleComputersAreActive()
+        ? multipleComputerSheets[
+            activeComputerIndex
+          ]
+        : computerSheet;
+
+    pendingComputerActivePlan.forEach(
+      function (choice) {
+        if (
+          computerChoiceWillLockRow(
+            activeSheet,
+            choice
+          )
+        ) {
+          warnings.push({
+            computerName:
+              multipleComputersAreActive()
+                ? `Computer ${
+                    activeComputerIndex + 1
+                  }`
+                : "Computer",
+
+            color: choice.color
+          });
+        }
+      }
+    );
+  }
+
+
+  /*
+    In a multiple-computer game, every passive
+    computer may use the shared white dice.
+  */
+
+  if (multipleComputersAreActive()) {
+    pendingPassiveComputerChoices.forEach(
+      function (response) {
+        const sheet =
+          multipleComputerSheets[
+            response.computerIndex
+          ];
+
+        if (
+          computerChoiceWillLockRow(
+            sheet,
+            response.choice
+          )
+        ) {
+          warnings.push({
+            computerName:
+              `Computer ${
+                response.computerIndex + 1
+              }`,
+
+            color:
+              response.choice.color
+          });
+        }
+      }
+    );
+  }
+
+
+  /*
+    In a one-computer game, warn when the
+    computer uses the white dice during the
+    human's active turn.
+  */
+
+  if (
+    !multipleComputersAreActive() &&
+    phaseBeforeRoll === "human" &&
+    pendingComputerWhiteChoice &&
+    computerChoiceWillLockRow(
+      computerSheet,
+      pendingComputerWhiteChoice
+    )
+  ) {
+    warnings.push({
+      computerName: "Computer",
+      color:
+        pendingComputerWhiteChoice.color
+    });
+  }
+
+
+  /*
+    Remove duplicate warnings for the same
+    computer and color.
+  */
+
+  const uniqueWarnings =
+    warnings.filter(
+      function (warning, index, array) {
+        return (
+          array.findIndex(
+            function (otherWarning) {
+              return (
+                otherWarning.computerName ===
+                  warning.computerName &&
+                otherWarning.color ===
+                  warning.color
+              );
+            }
+          ) === index
+        );
+      }
+    );
+
+  showAllPlannedComputerLocks(
+    uniqueWarnings
+  );
+};
