@@ -8093,3 +8093,372 @@ rollVirtualDice = async function () {
     uniqueWarnings
   );
 };
+
+/* =========================================
+   READABLE END-GAME WARNINGS
+   ========================================= */
+
+
+/* =========================================
+   SHORTER MULTI-COMPUTER LOCK MESSAGE
+   ========================================= */
+
+function joinWarningNames(names) {
+  if (names.length <= 1) {
+    return names[0] || "";
+  }
+
+  if (names.length === 2) {
+    return `${names[0]} and ${names[1]}`;
+  }
+
+  return (
+    names.slice(0, -1).join(", ") +
+    `, and ${names[names.length - 1]}`
+  );
+}
+
+
+function formatWarningComputerNames(
+  names
+) {
+  const uniqueNames =
+    [...new Set(names)];
+
+  const numberedComputers =
+    uniqueNames.every(function (name) {
+      return /^Computer \d+$/.test(name);
+    });
+
+  if (!numberedComputers) {
+    return joinWarningNames(
+      uniqueNames
+    );
+  }
+
+  const numbers =
+    uniqueNames.map(function (name) {
+      return name.replace(
+        "Computer ",
+        ""
+      );
+    });
+
+  return (
+    numbers.length === 1
+      ? `Computer ${numbers[0]}`
+      : `Computers ${
+          joinWarningNames(numbers)
+        }`
+  );
+}
+
+
+showAllPlannedComputerLocks = function (
+  warnings
+) {
+  if (warnings.length === 0) {
+    clearComputerLockWarning();
+    return;
+  }
+
+  const warningsByColor = {};
+
+  warnings.forEach(function (warning) {
+    if (
+      !warningsByColor[warning.color]
+    ) {
+      warningsByColor[
+        warning.color
+      ] = [];
+    }
+
+    warningsByColor[
+      warning.color
+    ].push(
+      warning.computerName
+    );
+  });
+
+  const warningParts =
+    Object.keys(warningsByColor)
+      .map(function (color) {
+        const computerNames =
+          formatWarningComputerNames(
+            warningsByColor[color]
+          );
+
+        return (
+          `${capitalizeComputerColor(color)} row: ` +
+          computerNames
+        );
+      });
+
+  setComputerPanelText(
+    "Row Lock Warning",
+    `${warningParts.join(". ")}. ` +
+    "You may still use the white dice."
+  );
+
+  const panel =
+    document.getElementById(
+      "computerStatusPanel"
+    );
+
+  if (panel) {
+    panel.classList.add(
+      "computer-lock-warning"
+    );
+  }
+};
+
+
+/* =========================================
+   COMPUTER FOURTH-PENALTY WARNING
+   ========================================= */
+
+function getComputerPenaltySnapshot() {
+  if (multipleComputersAreActive()) {
+    return multipleComputerSheets.map(
+      function (sheet) {
+        return Number(
+          sheet.penalties || 0
+        );
+      }
+    );
+  }
+
+  return [
+    Number(
+      computerSheet.penalties || 0
+    )
+  ];
+}
+
+
+function getPenaltyEndingComputers(
+  penaltiesBefore,
+  penaltiesAfter
+) {
+  const endingComputers = [];
+
+  penaltiesAfter.forEach(
+    function (penaltyCount, index) {
+      const previousCount =
+        penaltiesBefore[index] || 0;
+
+      if (
+        previousCount < 4 &&
+        penaltyCount >= 4
+      ) {
+        endingComputers.push(
+          multipleComputersAreActive()
+            ? `Computer ${index + 1}`
+            : "Computer"
+        );
+      }
+    }
+  );
+
+  return endingComputers;
+}
+
+
+const beforePenaltyWarningRoll =
+  rollVirtualDice;
+
+rollVirtualDice = async function () {
+  const penaltiesBefore =
+    getComputerPenaltySnapshot();
+
+  await beforePenaltyWarningRoll();
+
+  if (
+    !isComputerGame() ||
+    !diceHaveBeenRolled ||
+    gameIsOver
+  ) {
+    return;
+  }
+
+  const penaltiesAfter =
+    getComputerPenaltySnapshot();
+
+  const endingComputers =
+    getPenaltyEndingComputers(
+      penaltiesBefore,
+      penaltiesAfter
+    );
+
+  if (
+    endingComputers.length === 0
+  ) {
+    return;
+  }
+
+  const panel =
+    document.getElementById(
+      "computerStatusPanel"
+    );
+
+  const instructionElement =
+    getComputerTurnInstruction();
+
+  const existingLockWarning =
+    panel &&
+    panel.classList.contains(
+      "computer-lock-warning"
+    )
+      ? instructionElement.textContent
+      : "";
+
+  const computerNames =
+    joinWarningNames(
+      endingComputers
+    );
+
+  const penaltyWarning =
+    `${computerNames} will take a fourth penalty. ` +
+    "The game will end after everyone finishes this roll.";
+
+  setComputerPanelText(
+    "Game Ending Warning",
+    existingLockWarning
+      ? `${existingLockWarning} ${penaltyWarning}`
+      : penaltyWarning
+  );
+
+  if (panel) {
+    panel.classList.add(
+      "computer-lock-warning",
+      "computer-penalty-warning"
+    );
+  }
+};
+
+
+/*
+  Remove the penalty warning when the normal
+  warning panel is cleared.
+*/
+
+const beforePenaltyWarningClear =
+  clearComputerLockWarning;
+
+clearComputerLockWarning = function () {
+  beforePenaltyWarningClear();
+
+  const panel =
+    document.getElementById(
+      "computerStatusPanel"
+    );
+
+  if (panel) {
+    panel.classList.remove(
+      "computer-penalty-warning"
+    );
+  }
+};
+
+
+/* =========================================
+   PLAYER FOURTH-PENALTY WARNING
+   ========================================= */
+
+const beforeSpecificPenaltyWarning =
+  openLockPanel;
+
+openLockPanel = function () {
+  const fourthPenaltySelected =
+    pendingPenalty !== null &&
+    getConfirmedPenaltyCount() === 3;
+
+  beforeSpecificPenaltyWarning();
+
+  if (!fourthPenaltySelected) {
+    return;
+  }
+
+  lockCard.classList.add(
+    "ending-warning"
+  );
+
+  lockTitle.textContent =
+    "This penalty ends the game";
+
+  lockMessage.textContent =
+    "This will be your fourth penalty. Everyone's current score will become final.";
+
+  cancelLockButton.textContent =
+    "Go Back";
+
+  confirmLockButton.textContent =
+    "Take Penalty";
+};
+
+
+/* =========================================
+   WARNING PANEL WRAPPING
+   ========================================= */
+
+const readableComputerWarningStyles =
+  document.createElement("style");
+
+readableComputerWarningStyles.textContent = `
+  #gameScreen.computer-game
+  .computerStatusPanel.computer-lock-warning,
+  #gameScreen.computer-game
+  .computerStatusPanel.computer-penalty-warning {
+    min-height: 58px;
+    height: auto;
+    flex: 0 0 auto;
+
+    padding: 7px 10px;
+  }
+
+  #gameScreen.computer-game
+  .computerStatusPanel.computer-lock-warning
+  .computerTurnStatus,
+  #gameScreen.computer-game
+  .computerStatusPanel.computer-penalty-warning
+  .computerTurnStatus {
+    width: 100%;
+  }
+
+  #gameScreen.computer-game
+  .computerStatusPanel.computer-lock-warning
+  .computerTurnStatus small,
+  #gameScreen.computer-game
+  .computerStatusPanel.computer-penalty-warning
+  .computerTurnStatus small {
+    overflow: visible;
+    max-width: 100%;
+
+    white-space: normal;
+    text-overflow: clip;
+    line-height: 1.35;
+  }
+
+  @media (max-height: 700px) {
+    #gameScreen.computer-game
+    .computerStatusPanel.computer-lock-warning,
+    #gameScreen.computer-game
+    .computerStatusPanel.computer-penalty-warning {
+      min-height: 51px;
+      padding: 5px 8px;
+    }
+
+    #gameScreen.computer-game
+    .computerStatusPanel.computer-lock-warning
+    .computerTurnStatus small,
+    #gameScreen.computer-game
+    .computerStatusPanel.computer-penalty-warning
+    .computerTurnStatus small {
+      font-size: 8px;
+    }
+  }
+`;
+
+document.head.appendChild(
+  readableComputerWarningStyles
+);
